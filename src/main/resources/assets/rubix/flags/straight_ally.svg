@@ -1,0 +1,19 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 120 60"
+  width="800"
+  height="480"
+  preserveAspectRatio="none"
+>
+    <rect fill="#000" width="120" height="60"/>
+    <rect fill="#fff" width="120" height="10" y="10"/>
+    <rect fill="#fff" width="120" height="10" y="30"/>
+    <rect fill="#fff" width="120" height="10" y="50"/>
+    <polygon fill="#e00" points="60 00 70 10 60 11 50 10"/>
+    <polygon fill="#f80" points="50 10 70 10 80 20 60 21 40 20"/>
+    <polygon fill="#fe0" points="40 20 80 20 90 30 60 31 30 30"/>
+    <polygon fill="#00f" points="20 40 60 39 100 40 110 50 90 51 70 50 60 40 50 50 30 51 10 50"/>
+    <polygon fill="#080" points="30 30 90 30 100 40 20 40"/>
+    <polygon fill="#607" points="10 50 50 50 40 60 0 60"/>
+    <polygon fill="#607" points="70 50 110 50 120 60 80 60"/>
+</svg>

@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.rubixtheslime.rubix.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinAbstractBlockState",
+    "MixinEntity",
+    "MixinServerChunkLoadingManager",
+    "MixinServerTickManager",
+    "MixinServerWorld",
+    "MixinWorld",
+    "MixinWorldTickScheduler"
+  ],
+  "client": [
+    "client.MixinBiomeColors",
+    "client.MixinMinecraftClient",
+    "client.MixinRenderLayer$MultiPhase",
+    "client.MixinWorldRenderer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

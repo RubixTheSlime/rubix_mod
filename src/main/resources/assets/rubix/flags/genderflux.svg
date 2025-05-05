@@ -1,0 +1,14 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1 60"
+  width="800"
+  height="480"
+  preserveAspectRatio="none"
+>
+    <rect fill="#f69" width="1" height="11" y="0"/>
+    <rect fill="#fab" width="1" height="11" y="10"/>
+    <rect fill="#ddd" width="1" height="11" y="20"/>
+    <rect fill="#8dd" width="1" height="11" y="30"/>
+    <rect fill="#4ae" width="1" height="11" y="40"/>
+    <rect fill="#ffa" width="1" height="10" y="50"/>
+</svg>

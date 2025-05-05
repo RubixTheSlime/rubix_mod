@@ -1,0 +1,172 @@
+[
+  {
+    "id": "*",
+    "weight": 1,
+    "antialias": false,
+    "min_size": 10,
+    "max_size": 200,
+    "scale": "perexp",
+    "opacity": 0.85,
+    "density": 1,
+    "paprika": 0
+  },
+  {
+    "id": "abrosexual"
+  },
+  {
+    "id": "agender",
+    "weight": 10
+  },
+  {
+    "id": "androgyne"
+  },
+  {
+    "id": "aromantic",
+    "weight": 15
+  },
+  {
+    "id": "asexual",
+    "weight": 15
+  },
+  {
+    "id": "bigender"
+  },
+  {
+    "id": "bisexual",
+    "weight": 20
+  },
+  {
+    "id": "demiboy"
+  },
+  {
+    "id": "demigirl"
+  },
+  {
+    "id": "deminonbinary"
+  },
+  {
+    "id": "demiromantic",
+    "weight": 5
+  },
+  {
+    "id": "demisexual",
+    "weight": 5
+  },
+  {
+    "id": "femboy"
+  },
+  {
+    "id": "gay_male_5",
+    "weight": 10
+  },
+  {
+    "id": "gay_male_7",
+    "weight": 5
+  },
+  {
+    "id": "genderfluid",
+    "weight": 20
+  },
+  {
+    "id": "genderflux"
+  },
+  {
+    "id": "genderqueer",
+    "weight": 10
+  },
+  {
+    "id": "germany"
+  },
+  {
+    "id": "graysexual"
+  },
+  {
+    "id": "intersex",
+    "antialias": true,
+    "weight": 10
+  },
+  {
+    "id": "intersex_progress",
+    "antialias": true,
+    "min_size": 30,
+    "weight": 20
+  },
+  {
+    "id": "lesbian_5",
+    "weight": 10
+  },
+  {
+    "id": "lesbian_7",
+    "weight": 5
+  },
+  {
+    "id": "maverique"
+  },
+  {
+    "id": "neutrois"
+  },
+  {
+    "id": "nonbinary",
+    "weight": 15
+  },
+  {
+    "id": "omnisexual"
+  },
+  {
+    "id": "pangender"
+  },
+  {
+    "id": "pansexual",
+    "weight": 15
+  },
+  {
+    "id": "polyamory_original",
+    "min_size": 20,
+    "weight": 3
+  },
+  {
+    "id": "polyamory_tricolor",
+    "weight": 7
+  },
+  {
+    "id": "polygender"
+  },
+  {
+    "id": "polysexual"
+  },
+  {
+    "id": "progress",
+    "min_size": 20,
+    "weight": 10
+  },
+  {
+    "id": "rainbow",
+    "weight": 10
+  },
+  {
+    "id": "rainbow_philadelphia",
+    "weight": 20
+  },
+  {
+    "id": "straight_ally",
+    "weight": 5
+  },
+  {
+    "id": "tomboy"
+  },
+  {
+    "id": "trans",
+    "weight": 30
+  },
+  {
+    "id": "transfemme",
+    "weight": 5
+  },
+  {
+    "id": "transmasc",
+    "weight": 5
+  },
+  {
+    "id": "trigender"
+  }
+]

@@ -1,0 +1,10 @@
+accessWidener v2 named
+
+accessible field net/minecraft/world/biome/source/BiomeAccess seed J
+accessible class net/minecraft/entity/Entity$QueuedCollisionCheck
+accessible field net/minecraft/client/render/Tessellator allocator Lnet/minecraft/client/util/BufferAllocator;
+extendable class net/minecraft/client/render/RenderLayer$MultiPhase
+accessible method net/minecraft/client/render/RenderLayer$MultiPhase <init> (Ljava/lang/String;IZZLcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/client/render/RenderLayer$MultiPhaseParameters;)V
+accessible class net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker
+accessible field net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker entity Lnet/minecraft/entity/Entity;
+accessible method net/minecraft/client/texture/Sprite <init> (Lnet/minecraft/util/Identifier;Lnet/minecraft/client/texture/SpriteContents;IIII)V

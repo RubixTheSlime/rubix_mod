@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "rubix",
+  "version": "${version}",
+  "name": "Rubix' Mod",
+  "description": "Assorted toys from RubixTheSlime",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/rubix/icon.png",
+  "environment": "*",
+  "accessWidener": "rubix.accesswidener",
+  "entrypoints": {
+    "fabric-datagen": [
+      "io.github.rubixtheslime.rubix.client.RubixModDataGenerator"
+    ],
+    "client": [
+      "io.github.rubixtheslime.rubix.client.RubixModClient"
+    ],
+    "main": [
+      "io.github.rubixtheslime.rubix.RubixMod"
+    ]
+  },
+  "mixins": [
+    "rubix.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "fabric-key-binding-api-v1": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
