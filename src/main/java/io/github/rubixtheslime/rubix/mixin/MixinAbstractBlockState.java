@@ -3,6 +3,7 @@ package io.github.rubixtheslime.rubix.mixin;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -19,13 +20,18 @@ import net.minecraft.world.WorldView;
 import net.minecraft.world.block.WireOrientation;
 import net.minecraft.world.tick.ScheduledTickView;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(AbstractBlock.AbstractBlockState.class)
+@Mixin(value = AbstractBlock.AbstractBlockState.class, priority = 1500)
 public abstract class MixinAbstractBlockState {
+
+    @Shadow public abstract Block getBlock();
+
+    @Shadow protected abstract BlockState asBlockState();
 
     @Inject(method = "neighborUpdate", at = @At("HEAD"))
     public void neighborUpdateEnter(World world, BlockPos pos, Block sourceBlock, WireOrientation wireOrientation, boolean notify, CallbackInfo ci) {
@@ -52,6 +58,11 @@ public abstract class MixinAbstractBlockState {
     @Inject(method = "randomTick", at = @At("TAIL"))
     public void randomTickExit(ServerWorld world, BlockPos pos, Random random, CallbackInfo ci) {
         RedfileManager.exit();
+    }
+
+    @Inject(method = "getRenderType", at = @At("HEAD"), cancellable = true)
+    public void getRenderType(CallbackInfoReturnable<BlockRenderType> cir) {
+        cir.setReturnValue(getBlock().getRenderType(this.asBlockState()));
     }
 
     // handled by packets, need to exit for neighbor updatesr even if we don't enter. entering is

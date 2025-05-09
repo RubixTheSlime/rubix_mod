@@ -19,6 +19,10 @@ public class RubixConfigModel {
         @RestartRequired
         public boolean enableDebug = false;
 
+        @SectionHeader("danger_zone")
+        @RestartRequired
+        public boolean enableGayGrassVideo = false;
+
     }
 
     public static class RedfileOptions {

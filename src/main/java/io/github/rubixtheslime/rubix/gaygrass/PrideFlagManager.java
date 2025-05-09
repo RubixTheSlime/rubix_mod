@@ -8,6 +8,9 @@ import io.github.rubixtheslime.rubix.RubixMod;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 import net.minecraft.util.profiler.Profiler;
 
 import java.io.IOException;
@@ -22,6 +25,7 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
     private static final ResourceFinder SVG_FINDER = new ResourceFinder("flags", ".svg");
     private final ResourceManager resourceManager;
     private ColorGetter colorGetter;
+    private Random random = new Xoroshiro128PlusPlusRandom(0);
 
     public PrideFlagManager(ResourceManager resourceManager) {
         this.resourceManager = resourceManager;
@@ -31,21 +35,12 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
         return ((long) x & ~(-1L << 32)) | ((long) z << 32);
     }
 
-    public int getColor(int initial, double x, double z) {
-        return alphaBlend(colorGetter.getColor(x, z), initial);
+    public int getColor(BlockPos blockPos) {
+        return getColor(blockPos.getX(), blockPos.getZ());
     }
 
-    private static int alphaBlend(int top, int bottom) {
-        int res = 0;
-        double alpha = (double) (top >>> 24) / 255d;
-        for (int i = 0; i < 3; ++i) {
-            int shift = i * 8;
-            double a = (top >>> shift) & 255;
-            double b = (bottom >>> shift) & 255;
-            double c = Math.pow(Math.pow(a, 2.2) * alpha + Math.pow(b, 2.2) * (1 - alpha), 1d/2.2);
-            res |= (int) c << shift;
-        }
-        return res;
+    public int getColor(int x, int z) {
+        return colorGetter.getColor(x, z);
     }
 
     @Override
@@ -145,4 +140,8 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
         this.colorGetter.invalidateCaches();
     }
 
+    public boolean isAnimated(BlockPos pos) {
+//        return true;
+        return colorGetter.getColor(pos.getX(), pos.getZ()) != 0;
+    }
 }

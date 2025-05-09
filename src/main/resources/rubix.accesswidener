@@ -8,3 +8,5 @@ accessible method net/minecraft/client/render/RenderLayer$MultiPhase <init> (Lja
 accessible class net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker
 accessible field net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker entity Lnet/minecraft/entity/Entity;
 accessible method net/minecraft/client/texture/Sprite <init> (Lnet/minecraft/util/Identifier;Lnet/minecraft/client/texture/SpriteContents;IIII)V
+accessible class net/minecraft/client/render/chunk/ChunkBuilder$Result
+accessible method net/minecraft/block/AbstractBlock getRenderType (Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockRenderType;

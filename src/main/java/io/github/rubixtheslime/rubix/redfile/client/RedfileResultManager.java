@@ -240,9 +240,9 @@ public class RedfileResultManager {
         Map<Long, Integer> codes = new Long2IntOpenHashMap();
         worldEntry.selected.forEach(blockPosLong -> {
             if (!worldEntry.checkLayer(blockPosLong)) return;
-            codes.merge(blockPosLong, 3, (a, b) -> a | b);
-            codes.merge(BlockPos.offset(blockPosLong, Direction.SOUTH), 1, (a, b) -> a | b);
-            codes.merge(BlockPos.offset(blockPosLong, Direction.EAST), 2, (a, b) -> a | b);
+            codes.merge(blockPosLong, 3, (a, b) -> a ^ b);
+            codes.merge(BlockPos.offset(blockPosLong, Direction.SOUTH), 1, (a, b) -> a ^ b);
+            codes.merge(BlockPos.offset(blockPosLong, Direction.EAST), 2, (a, b) -> a ^ b);
         });
         lineRenderTrie = new RenderTrie(codes);
     }

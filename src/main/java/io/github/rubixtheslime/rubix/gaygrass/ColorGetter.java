@@ -9,7 +9,7 @@ import java.util.List;
 import static io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager.BASE_LEVEL;
 
 public abstract class ColorGetter {
-    public abstract int getColor(double x, double z);
+    public abstract int getColor(int x, int z);
 
     public abstract void invalidateCaches();
 
@@ -29,7 +29,7 @@ public abstract class ColorGetter {
 
     private static final class Empty extends ColorGetter {
         @Override
-        public int getColor(double x, double z) {
+        public int getColor(int x, int z) {
             return 0;
         }
 
@@ -54,7 +54,7 @@ public abstract class ColorGetter {
         }
 
         @Override
-        public int getColor(double x, double z) {
+        public int getColor(int x, int z) {
             int tileX = ((int) x) >> BASE_LEVEL;
             int tileZ = ((int) z) >> BASE_LEVEL;
             var bufferedImage = tileImageCache.get(PrideFlagManager.merge(tileX, tileZ), a -> {

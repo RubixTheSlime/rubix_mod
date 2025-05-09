@@ -14,8 +14,20 @@
   ],
   "client": [
     "client.MixinBiomeColors",
+    "client.MixinBlockColors",
+    "client.MixinBlockRenderInfo",
+    "client.MixinBlockRenderManager",
+    "client.MixinBufferBuilder",
+    "client.MixinChunkBuilder",
+    "client.MixinChunkBuilder$BuiltChunk",
+    "client.MixinChunkBuilder$BuiltChunk$RebuildTask",
+    "client.MixinChunkBuilder$ChunkData",
     "client.MixinMinecraftClient",
+    "client.MixinRenderLayer",
     "client.MixinRenderLayer$MultiPhase",
+    "client.MixinSectionBuilder",
+    "client.MixinSectionBuilder$RenderData",
+    "client.MixinVertexConsumer",
     "client.MixinWorldRenderer"
   ],
   "injectors": {

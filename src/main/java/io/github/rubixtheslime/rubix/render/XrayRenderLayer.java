@@ -2,12 +2,12 @@ package io.github.rubixtheslime.rubix.render;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderPass;
-import io.github.rubixtheslime.rubix.imixin.client.IMixinRenderLayer$MultiPhase;
+import io.github.rubixtheslime.rubix.imixin.client.IMixinRenderLayer;
 import net.minecraft.client.render.BuiltBuffer;
 import net.minecraft.client.render.RenderLayer;
 import org.lwjgl.opengl.GL14;
 
-public class XrayRenderLayer extends RenderLayer.MultiPhase implements IMixinRenderLayer$MultiPhase {
+public class XrayRenderLayer extends RenderLayer.MultiPhase implements IMixinRenderLayer.MultiPhase {
     private float xrayAlpha;
     private float regularAlpha;
     private final RenderPipeline regularPipeline;
