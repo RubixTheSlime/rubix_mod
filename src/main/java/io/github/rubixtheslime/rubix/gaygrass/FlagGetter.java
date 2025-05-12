@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.random.LocalRandom;
 import net.minecraft.util.math.random.Random;
+import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -31,7 +32,7 @@ public class FlagGetter {
     }
 
     public void setBiomeSeed(long biomeSeed) {
-        Random random = new LocalRandom(biomeSeed);
+        Random random = getRandom(biomeSeed);
         random.skip(2);
         long levelFactor = random.nextLong() | 1;
         long paprikaFactor = random.nextLong() | 1;
@@ -57,6 +58,10 @@ public class FlagGetter {
         return new Cached(entryGetter, splitExpectedCount, paprika, level, parent, cacheCount);
     }
 
+    private static Random getRandom(long seed) {
+        return new Xoroshiro128PlusPlusRandom(seed);
+    }
+
     private void seedRandom(Random random, long tileX, long tileZ) {
         random.setSeed(seed);
         long l = random.nextLong() | 1;
@@ -78,7 +83,7 @@ public class FlagGetter {
         }
 
         var newBuffers = new ArrayList<FlagBuffer>();
-        Random random = new LocalRandom(0);
+        Random random = getRandom(0);
         for (int checkX = tileX - 1; checkX <= tileX + 1; ++checkX) {
             for (int checkZ = tileZ - 1; checkZ <= tileZ + 1; ++checkZ) {
                 seedRandom(random, checkX, checkZ);

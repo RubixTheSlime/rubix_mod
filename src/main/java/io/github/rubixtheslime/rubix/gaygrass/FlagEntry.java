@@ -49,6 +49,7 @@ public final class FlagEntry {
             if (!entry.getValue().isJsonPrimitive()) continue;
             var value = entry.getValue().getAsJsonPrimitive();
             var key = SIMPLE_KEYS.get(entry.getKey());
+            if (key == null) continue;
             if (value.isNumber()) {
                 if (Long.class.isAssignableFrom(key.cls)) res.entries.put(key, value.getAsLong());
                 if (Double.class.isAssignableFrom(key.cls)) res.entries.put(key, value.getAsDouble());

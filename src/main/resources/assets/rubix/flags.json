@@ -121,12 +121,15 @@
   },
   {
     "id": "polyamory_original",
-    "min_size": 20,
-    "weight": 3
+    "min_size": 40,
+    "antialias": true,
+    "weight": 5
   },
   {
     "id": "polyamory_tricolor",
-    "weight": 7
+    "min_size": 25,
+    "antialias": true,
+    "weight": 10
   },
   {
     "id": "polygender"
