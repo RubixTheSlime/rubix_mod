@@ -1,78 +1,62 @@
 package io.github.rubixtheslime.rubix.render;
 
-import io.github.rubixtheslime.rubix.EnabledMods;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.systems.CommandEncoder;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormatElement;
+import com.mojang.jtracy.MemoryPool;
+import com.mojang.jtracy.TracyClient;
 import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
 import io.github.rubixtheslime.rubix.util.MoreColor;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.color.block.BlockColors;
-import net.minecraft.client.color.world.BiomeColors;
 import net.minecraft.client.render.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
-import net.minecraft.world.WorldView;
-import org.lwjgl.opengl.GL32;
+import org.lwjgl.system.MemoryUtil;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class DynColorBuilder implements VertexConsumer {
+    private static final MemoryPool MEMORY_POOL = TracyClient.createMemoryPool("DynColorBuffers");
+    private static final MemoryUtil.MemoryAllocator ALLOCATOR = MemoryUtil.getAllocator(false);
 
-//    private static final int BLOCK_START_WIDTH = 3 + 2;
-//    private static final int VERTEX_WIDTH = 4*3 + 3 + 2 + 1 + 1 + 4*2 + 2*2 + 4*3;
-    private static final ThreadLocal<Boolean> greenScreening = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Boolean> postGreenScreening = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<BlockPos> currentBlockPos = ThreadLocal.withInitial(() -> null);
-    private static final ThreadLocal<BlockState> currentBlockState = ThreadLocal.withInitial(() -> null);
-
-    private final BlockColors blockColors;
-    private final WorldView worldView;
+    private final VertexFormat.DrawMode drawMode;
     private final List<BuildingVertex> quadBuffer = new ArrayList<>(4);
     private final Map<Long, Map<Integer, List<BuiltColorVertex>>> deferred = new Long2ObjectOpenHashMap<>();
-    private final VertexConsumer inner;
+
+    private long currentBlockPos;
+    private int baseColor;
+    private BlockPos prevPos = null;
+    private int prevColor;
     private BuildingVertex tmpVertex = null;
-    private static final Random random = new Xoroshiro128PlusPlusRandom(0);
 
-    public DynColorBuilder(VertexConsumer inner) {
-        this.inner = inner;
-        var client = MinecraftClient.getInstance();
-        blockColors = client.getBlockColors();
-        worldView = client.world;
+    public DynColorBuilder(VertexFormat.DrawMode drawMode) {
+        this.drawMode = drawMode;
     }
 
-    public static boolean isGreenScreening() {
-        return EnabledMods.GAY_GRASS && greenScreening.get();
-    }
-
-    public static void setGreenScreening(boolean greenScreening) {
-        DynColorBuilder.greenScreening.set(greenScreening);
-    }
-
-    public static void setBlock(BlockPos pos, BlockState state) {
-        currentBlockPos.set(pos);
-        currentBlockState.set(state);
-    }
-
-    public static boolean isPostGreenScreening() {
-        return EnabledMods.GAY_GRASS && postGreenScreening.get();
-    }
-
-    private static void setPostGreenScreening(boolean postGreenScreening) {
-        DynColorBuilder.postGreenScreening.set(postGreenScreening);
+    public void setBlock(BlockPos pos) {
+//        commit(false);
+        currentBlockPos = pos.withY(0).asLong();
     }
 
     @Override
     public VertexConsumer vertex(float x, float y, float z) {
         commit();
         tmpVertex = new BuildingVertex();
+        // ??????????? i have no idea why this is necessary, somehow everything gets misaligned
+//        if (prevPos == null) {
+            tmpVertex.blockPos = currentBlockPos;
+            tmpVertex.baseColor = baseColor;
+//        } else {
+//            tmpVertex.blockPos = prevPos;
+//            tmpVertex.baseColor = prevColor;
+//        }
+//        prevPos = currentBlockPos;
+//        prevColor = baseColor;
         tmpVertex.vertX = x;
         tmpVertex.vertY = y;
         tmpVertex.vertZ = z;
@@ -81,10 +65,10 @@ public class DynColorBuilder implements VertexConsumer {
 
     @Override
     public VertexConsumer color(int red, int green, int blue, int alpha) {
-        tmpVertex.red = red;
-        tmpVertex.green = green;
-        tmpVertex.blue = blue;
-        tmpVertex.alpha = alpha;
+        int baseColorShade = MoreColor.maxComponentRgb(tmpVertex.baseColor);
+        int component = Math.max(Math.max(red, green), blue);
+        tmpVertex.shade = Math.clamp((float) component / (float) baseColorShade, 0, 1);
+        tmpVertex.alpha = (short) alpha;
         return this;
     }
 
@@ -115,114 +99,157 @@ public class DynColorBuilder implements VertexConsumer {
         return this;
     }
 
-    public BuiltData getColorData() {
-        return deferred.isEmpty() ? null : new BuiltData(deferred);
-    }
-
-    public void endDirect() {
-        // todo: put color data to ThreadLocal static so it can actually be retrieved
+    public Map<Long, Map<Integer, List<BuiltColorVertex>>> getDeferred() {
         commit();
+        int total = deferred.values().stream().mapToInt(a ->
+            a.values().stream().mapToInt(List::size).sum()
+        ).sum();
+        assert total % 4 == 0;
+        return deferred;
     }
 
     private void commit() {
-        if (tmpVertex == null) return;
-        quadBuffer.addLast(tmpVertex);
-        if (quadBuffer.size() != 4) return;
-
-        var maxColorParts = quadBuffer.stream()
-            .map(v -> new int[]{v.red, v.green, v.blue})
-            .reduce((a, b) -> {
-                for (int i = 0; i < a.length; i++) a[i] = Math.max(a[i], b[i]);
-                return a;
-            }).get();
-        int maxRed = maxColorParts[0];
-        int maxGreen = maxColorParts[1];
-        int maxBlue = maxColorParts[2];
-
-        setGreenScreening(false);
-        if (maxRed == maxGreen && maxRed == maxBlue) {
-            quadBuffer.forEach(v -> v.applyMost(inner).color(v.red, v.green, v.blue, v.alpha));
-        } else {
-            var pos = currentBlockPos.get();
-            var manager = RubixModClient.prideFlagManager;
-            boolean animated = manager.isAnimated(pos);
-            setPostGreenScreening(!animated);
-//            int color = -1;
-            int color = maxGreen > maxBlue ? blockColors.getColor(currentBlockState.get(), worldView, pos, 1) : BiomeColors.getWaterColor(worldView, pos);
-            setPostGreenScreening(false);
-            if (RDebug.b1() ^ animated) {
-                var list = deferred
-                    .computeIfAbsent(pos.withY(0).asLong(), column -> new Int2ObjectOpenHashMap<>())
-                    .computeIfAbsent(color, c -> new ArrayList<>());
-                for (var v : quadBuffer) {
-                    list.addLast(new BuiltColorVertex(
-                        v.vertX, v.vertY, v.vertZ,
-                        v.getShade(), (byte) v.alpha,
-                        v.texU, v.texV,
-                        (short) v.lightU, (short) v.lightV,
-                        v.normX, v.normY, v.normZ
-                    ));
-                }
-            } else {
-                int red = ColorHelper.getRed(color);
-                int green = ColorHelper.getRed(color);
-                int blue = ColorHelper.getRed(color);
-                quadBuffer.forEach(v -> {
-                    int shade = v.getShade();
-                    v.applyMost(inner).color(red * shade >> 23, green * shade >> 23, blue * shade >> 23, v.alpha);
-                });
-            }
+        if (tmpVertex == null) {
+            return;
         }
-        setGreenScreening(true);
-        quadBuffer.clear();
+
+        var list = deferred
+            .computeIfAbsent(tmpVertex.blockPos, column -> new Int2ObjectOpenHashMap<>())
+            .computeIfAbsent(tmpVertex.baseColor, c -> new ArrayList<>());
+
+        list.addLast(tmpVertex.finish());
+
+//        quadBuffer.add(tmpVertex);
+//        if (quadBuffer.size() < 4) return;
+//        var main = quadBuffer.get(RDebug.i0());
+//        var list = deferred
+//            .computeIfAbsent(main.blockPos.withY(0).asLong(), column -> new Int2ObjectOpenHashMap<>())
+//            .computeIfAbsent(main.baseColor, c -> new ArrayList<>());
+//        for (var v : quadBuffer) {
+//            list.addLast(v.finish());
+//        }
+//        quadBuffer.clear();
+
+        tmpVertex = null;
+    }
+
+    public boolean isAnimating() {
+        return baseColor != 0;
+    }
+
+    public void setBaseColor(int color) {
+//        commit(false);
+        this.baseColor = color;
+    }
+
+    public static class PartialBuilt {
+        private final List<ColEntry> colorData;
+        private final int uploadOffset;
+        private final int vertexWidth;
+        private final int size;
+
+        private PartialBuilt(List<ColEntry> colorData, int uploadOffset, int vertexWidth, int size) {
+            this.colorData = colorData;
+            this.uploadOffset = uploadOffset;
+            this.vertexWidth = vertexWidth;
+            this.size = size;
+        }
+
+        public static PartialBuilt of(List<ColEntry> colorData, int skippedVerts, VertexFormat vertexFormat) {
+            int vertexWidth = vertexFormat.getVertexSize();
+            // color element goes rgba, so start exactly at color and end 4 (exclusive) later
+            int uploadOffset = skippedVerts * vertexWidth + vertexFormat.getOffset(VertexFormatElement.COLOR);
+            int vertCount = colorData.stream().mapToInt(ColEntry::totalVerts).sum();
+            if (vertCount == 0) return null;
+            int size = vertexWidth * (vertCount - 1) + 4;
+            return new PartialBuilt(colorData, uploadOffset, vertexWidth, size);
+        }
+
+        public Built build(ByteBuffer fullBuffer) {
+            var bufferPointer = ALLOCATOR.malloc(size);
+            MEMORY_POOL.malloc(bufferPointer, size);
+            MemoryUtil.memCopy(fullBuffer.slice(uploadOffset, size), MemoryUtil.memByteBuffer(bufferPointer, size));
+            return new Built(colorData, uploadOffset, vertexWidth, size, bufferPointer);
+        }
 
     }
 
-    public static class BuiltData {
-        private final Map<Long, Map<Integer, List<BuiltColorVertex>>> data;
+    public static class Built {
+        private final List<ColEntry> colorData;
+        private final int uploadOffset;
+        private final int vertexWidth;
+        private final int size;
+        private final long bufferPointer;
+        private boolean closed = false;
 
-        private BuiltData(Map<Long, Map<Integer, List<BuiltColorVertex>>> data) {
-            // we only iterate through, so use array map
-            this.data = new Long2ObjectArrayMap<>(data);
-            this.data.replaceAll((key, inner) -> new Int2ObjectArrayMap<>(inner));
+        private Built(List<ColEntry> colorData, int uploadOffset, int vertexWidth, int size, long bufferPointer) {
+            this.colorData = colorData;
+            this.uploadOffset = uploadOffset;
+            this.vertexWidth = vertexWidth;
+            this.size = size;
+            this.bufferPointer = bufferPointer;
         }
 
-        public void draw(VertexConsumer vertexConsumer, float originX, float originY, float originZ) {
-            if (RDebug.b2()) return;
+        public void update() {
             var manager = RubixModClient.prideFlagManager;
-            for (var columnEntry : data.entrySet()) {
-                int colColor = RDebug.b3() ? (random.nextInt() & (-1 >>> 1)) : manager.getColor(BlockPos.fromLong(columnEntry.getKey()));
-                var blender = MoreColor.QuickRgbBlender.of(colColor);
-                for (var colorEntry : columnEntry.getValue().entrySet()) {
-                    int[] baseColor = MoreColor.breakDownRgb(colorEntry.getKey());
-                    blender.blend(baseColor);
-                    for (var v : colorEntry.getValue()) {
-                        vertexConsumer.vertex(v.vertX + originX, v.vertY + originY, v.vertZ + originZ)
-                            .color(v.shade(baseColor[0]), v.shade(baseColor[1]), v.shade(baseColor[2]), v.alpha)
-                            .texture(v.texU, v.texV)
-                            .light(v.lightU, v.lightV)
-                            .normal(v.normX, v.normY, v.normZ);
+            var blender = new MoreColor.QuickRgbShadeBlender();
+            var buffer = getBuffer();
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            int injectPoint = 0;
+            for (var columnEntry : colorData) {
+                blender.topArgb(manager.getColor(new BlockPos(columnEntry.x, 0, columnEntry.z), true));
+                for (var colorEntry : columnEntry.data) {
+                    blender.bottomRgb(colorEntry.baseColor);
+                    for (int shade : colorEntry.shades) {
+                        blender.shadePrecomped(shade);
+                        int color = blender.getFullAbgr();
+                        buffer.putInt(injectPoint, color);
+                        injectPoint += vertexWidth;
                     }
                 }
             }
         }
-    }
 
-    private record BuiltColorVertex(float vertX, float vertY, float vertZ, int shadeMultiplier, byte alpha, float texU,
-                                    float texV, short lightU, short lightV, float normX, float normY, float normZ) {
-        public int shade(int part) {
-            return part * shadeMultiplier >> 23;
+        public void upload(GpuBuffer gpuBuffer, CommandEncoder commandEncoder) {
+            commandEncoder.writeToBuffer(gpuBuffer, getBuffer(), uploadOffset);
+        }
+
+        public ByteBuffer getBuffer() {
+            if (closed) {
+                throw new IllegalStateException("buffer already closed");
+            } else {
+                return MemoryUtil.memByteBuffer(this.bufferPointer, this.size);
+            }
+        }
+
+        public void close() {
+            if (closed) return;
+            closed = true;
+            MEMORY_POOL.free(bufferPointer);
+            ALLOCATOR.free(bufferPointer);
         }
     }
 
+    public record ColEntry(int x, int z, List<BaseColorEntry> data) {
+        public int totalVerts() {
+            return data.stream().mapToInt(x -> x.shades.size()).sum();
+        }
+    }
+
+    public record BaseColorEntry(int baseColor, List<Integer> shades) {}
+
+    public record BuiltColorVertex(float vertX, float vertY, float vertZ, float shade, short alpha, float texU,
+                                    float texV, short lightU, short lightV, float normX, float normY, float normZ) {
+    }
+
     private static class BuildingVertex {
+        private long blockPos;
+        private int baseColor;
         private float vertX;
         private float vertY;
         private float vertZ;
-        private int red;
-        private int green;
-        private int blue;
-        private int alpha;
+        private float shade;
+        private short alpha;
         private float texU;
         private float texV;
         private int lightU;
@@ -231,9 +258,14 @@ public class DynColorBuilder implements VertexConsumer {
         private float normY;
         private float normZ;
 
-        private int getShade() {
-            // precomputed inverse - must be ceiling div because reasons
-            return ((Math.max(green, blue) << 23) - 1) / 255 + 1;
+        private BuiltColorVertex finish() {
+            return new BuiltColorVertex(
+                vertX, vertY, vertZ,
+                shade, alpha,
+                texU, texV,
+                (short) lightU, (short) lightV,
+                normX, normY, normZ
+            );
         }
 
         private VertexConsumer applyMost(VertexConsumer vertexConsumer) {

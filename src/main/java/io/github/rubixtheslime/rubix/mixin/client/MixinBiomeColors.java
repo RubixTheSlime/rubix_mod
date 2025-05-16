@@ -22,16 +22,11 @@ public class MixinBiomeColors {
     @Unique
     private static final Random random = new Random(0);
 
-    @Inject(method = "getWaterColor", at = @At("HEAD"), cancellable = true)
-    private static void getWaterColorGreenScreen(BlockRenderView world, BlockPos pos, CallbackInfoReturnable<Integer> cir) {
-        if (DynColorBuilder.isGreenScreening()) cir.setReturnValue(0xff0000ff);
-    }
-
     @Inject(method = "getColor", at = @At("RETURN"), cancellable = true)
     private static void getColorGayify(BlockRenderView world, BlockPos pos, ColorResolver resolver, CallbackInfoReturnable<Integer> cir) {
-        if (!EnabledMods.GAY_GRASS || DynColorBuilder.isPostGreenScreening()) return;
-        int initial = RDebug.b0() ? (random.nextInt() | (-1 << 24)) : cir.getReturnValue();
-        cir.setReturnValue(MoreColor.alphaBlend(RubixModClient.prideFlagManager.getColor(pos), initial));
+        if (!EnabledMods.GAY_GRASS) return;
+        int initial = cir.getReturnValue();
+        cir.setReturnValue(MoreColor.alphaBlend(RubixModClient.prideFlagManager.getColor(pos, false), initial));
     }
 
 }

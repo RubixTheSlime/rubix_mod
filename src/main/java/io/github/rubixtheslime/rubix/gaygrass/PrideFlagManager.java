@@ -4,7 +4,9 @@ import com.github.weisj.jsvg.SVGDocument;
 import com.github.weisj.jsvg.parser.LoaderContext;
 import com.github.weisj.jsvg.parser.SVGLoader;
 import com.google.gson.JsonArray;
+import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.RubixMod;
+import io.github.rubixtheslime.rubix.util.MoreColor;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
@@ -25,7 +27,12 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
     private static final ResourceFinder SVG_FINDER = new ResourceFinder("flags", ".svg");
     private final ResourceManager resourceManager;
     private ColorGetter colorGetter;
-    private Random random = new Xoroshiro128PlusPlusRandom(0);
+    private final Random random = new Xoroshiro128PlusPlusRandom(0);
+    private static long time = 0;
+
+    public static void setTime(long value) {
+        time = value;
+    }
 
     public PrideFlagManager(ResourceManager resourceManager) {
         this.resourceManager = resourceManager;
@@ -35,12 +42,16 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
         return ((long) x & ~(-1L << 32)) | ((long) z << 32);
     }
 
-    public int getColor(BlockPos blockPos) {
-        return getColor(blockPos.getX(), blockPos.getZ());
-    }
-
-    public int getColor(int x, int z) {
-        return colorGetter.getColor(x, z);
+    public int getColor(BlockPos blockPos, boolean animated) {
+        if (!animated && isAnimated(blockPos)) return 0;
+        if (animated && RDebug.b1()) return random.nextInt();
+        int x = blockPos.getX();
+        int z = blockPos.getZ();
+        int res = colorGetter.getColor(x, z);
+        if (animated && RDebug.b0() && ((x + z + time) & 64) == 0) {
+            res = (res & 0xfefefe) >> 1 | 0x808080 | res & 0xff00_0000;
+        }
+        return res;
     }
 
     @Override

@@ -15,6 +15,6 @@ public class MixinBlockColors {
 
     @Inject(method = "getColor", at = @At("HEAD"), cancellable = true)
     public void getColor(BlockState state, BlockRenderView world, BlockPos pos, int tintIndex, CallbackInfoReturnable<Integer> cir) {
-        if (DynColorBuilder.isGreenScreening()) cir.setReturnValue(0xff00ff00);
+//        if (DynColorBuilder.isGreenScreening()) cir.setReturnValue(0xff00ff00);
     }
 }

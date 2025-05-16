@@ -30,7 +30,7 @@ public class ModKeyBinds {
     private static KeyBinding moveRedfileLayerUp;
     private static KeyBinding moveRedfileLayerDown;
 
-    static void init() {
+    public static void init() {
         toggleRedfileSelect = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.rubix.redfile_toggle_select",
             GLFW.GLFW_KEY_V,

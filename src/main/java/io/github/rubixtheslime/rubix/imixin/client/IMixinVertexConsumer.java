@@ -10,23 +10,23 @@ import net.minecraft.util.math.BlockPos;
 
 public interface IMixinVertexConsumer {
 
-    default DynColorBuilder getDeferrer() {
+    default DynColorBuilder rubix$getDeferrer() {
         return null;
     }
 
-    default void rubix$block(BlockPos pos, BlockState state, BlockColors colors) {}
-    default BlockPos rubix$blockPos() {
-        return null;
-    }
-    default BlockState rubix$blockState() {
-        return null;
-    }
-    default void rubix$queueQuad(MatrixStack.Entry entry, BakedQuad quad, int i, int j) {}
-    default boolean rubix$shouldDelay() {
-        return false;
-    }
-    default DynColorData rubix$getDynColorData() {
-        return null;
-    }
+//    default void rubix$block(BlockPos pos, BlockState state, BlockColors colors) {}
+//    default BlockPos rubix$blockPos() {
+//        return null;
+//    }
+//    default BlockState rubix$blockState() {
+//        return null;
+//    }
+//    default void rubix$queueQuad(MatrixStack.Entry entry, BakedQuad quad, int i, int j) {}
+//    default boolean rubix$shouldDelay() {
+//        return false;
+//    }
+//    default DynColorData rubix$getDynColorData() {
+//        return null;
+//    }
 
 }

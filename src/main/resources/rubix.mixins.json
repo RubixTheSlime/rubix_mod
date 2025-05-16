@@ -4,7 +4,8 @@
   "package": "io.github.rubixtheslime.rubix.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MixinAbstractBlockState",
+    "MixinAbstractBlock",
+    "MixinAbstractBlock$MixinAbstractBlockState",
     "MixinEntity",
     "MixinServerChunkLoadingManager",
     "MixinServerTickManager",
@@ -13,22 +14,29 @@
     "MixinWorldTickScheduler"
   ],
   "client": [
+    "client.CMixinAbstractBlock",
+    "client.CMixinAbstractBlock$CMixinAbstractBlockState",
     "client.MixinBiomeColors",
     "client.MixinBlockColors",
-    "client.MixinBlockRenderInfo",
+    "client.MixinBlockModelRenderer",
     "client.MixinBlockRenderManager",
     "client.MixinBufferBuilder",
+    "client.MixinBuiltBuffer",
     "client.MixinChunkBuilder",
+    "client.MixinChunkBuilder$Buffers",
     "client.MixinChunkBuilder$BuiltChunk",
     "client.MixinChunkBuilder$BuiltChunk$RebuildTask",
     "client.MixinChunkBuilder$ChunkData",
+    "client.MixinFluidRenderer",
+    "client.MixinGlGpuBuffer",
+    "client.MixinGlResourceManager",
     "client.MixinMinecraftClient",
     "client.MixinRenderLayer",
     "client.MixinRenderLayer$MultiPhase",
     "client.MixinSectionBuilder",
-    "client.MixinSectionBuilder$RenderData",
     "client.MixinVertexConsumer",
-    "client.MixinWorldRenderer"
+    "client.MixinWorldRenderer",
+    "fabric.client.MixinTerrainRenderContext"
   ],
   "injectors": {
     "defaultRequire": 1
