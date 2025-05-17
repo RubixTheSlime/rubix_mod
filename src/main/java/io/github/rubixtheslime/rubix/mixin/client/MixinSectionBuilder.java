@@ -1,12 +1,8 @@
 package io.github.rubixtheslime.rubix.mixin.client;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.blaze3d.systems.VertexSorter;
 import io.github.rubixtheslime.rubix.EnabledMods;
-import io.github.rubixtheslime.rubix.imixin.client.IMixinSectionBuilder;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinVertexConsumer;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
@@ -33,56 +29,25 @@ import java.util.List;
 import java.util.Map;
 
 @Mixin(value = SectionBuilder.class, priority = 500)
-public abstract class MixinSectionBuilder implements IMixinSectionBuilder {
+public abstract class MixinSectionBuilder {
 
     @Shadow protected abstract BufferBuilder beginBufferBuilding(Map<RenderLayer, BufferBuilder> builders, BlockBufferAllocatorStorage allocatorStorage, RenderLayer layer);
 
     @Shadow @Final private BlockRenderManager blockRenderManager;
 
-//    @Inject(method = "build", at = @At("HEAD"))
-//    public void buildStart(ChunkSectionPos sectionPos, ChunkRendererRegion renderRegion, VertexSorter vertexSorter, BlockBufferAllocatorStorage allocatorStorage, CallbackInfoReturnable<SectionBuilder.RenderData> cir) {
-//        DynColorBuilder.setGreenScreening(true);
-//    }
-
-//    @Inject(method = "build", at = @At("TAIL"))
-//    public void buildEnd(ChunkSectionPos sectionPos, ChunkRendererRegion renderRegion, VertexSorter vertexSorter, BlockBufferAllocatorStorage allocatorStorage, CallbackInfoReturnable<SectionBuilder.RenderData> cir) {
-//        DynColorBuilder.setGreenScreening(false);
-//    }
-
-
-
-    @WrapOperation(method = "build", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/chunk/SectionBuilder;beginBufferBuilding(Ljava/util/Map;Lnet/minecraft/client/render/chunk/BlockBufferAllocatorStorage;Lnet/minecraft/client/render/RenderLayer;)Lnet/minecraft/client/render/BufferBuilder;"))
-    public BufferBuilder buildSetBlock(
-        SectionBuilder instance,
-        Map<RenderLayer, BufferBuilder> builders,
+    @Inject(method = "build", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/block/BlockRenderManager;renderFluid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/BlockRenderView;Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/block/BlockState;Lnet/minecraft/fluid/FluidState;)V"))
+    public void buildSetBlock(
+        ChunkSectionPos sectionPos,
+        ChunkRendererRegion renderRegion,
+        VertexSorter vertexSorter,
         BlockBufferAllocatorStorage allocatorStorage,
-        RenderLayer layer,
-        Operation<BufferBuilder> original,
-        @Local Map<RenderLayer, BufferBuilder> map,
-        @Local RenderLayer renderLayer,
-        @Local(name = "blockPos3") BlockPos blockPos
-//        @Local(name = "blockState") BlockState blockState
+        CallbackInfoReturnable<SectionBuilder.RenderData> cir,
+        @Local BufferBuilder bufferBuilder,
+        @Local(ordinal = 2) BlockPos blockPos
     ) {
-        var res = original.call(instance, map, allocatorStorage, renderLayer);
-        ((IMixinVertexConsumer)res).rubix$getDeferrer().setBlock(blockPos);
-        return res;
+        if (!EnabledMods.GAY_GRASS_VIDEO) return;
+        ((IMixinVertexConsumer)bufferBuilder).rubix$getDeferrer().setBlock(blockPos);
     }
-
-//    @Inject(method = "build", at = @At(value = "INVOKE", target = "Ljava/util/Map$Entry;getKey()Ljava/lang/Object;"))
-//    public void buildAddDynColor(
-//        ChunkSectionPos sectionPos,
-//        ChunkRendererRegion renderRegion,
-//        VertexSorter vertexSorter,
-//        BlockBufferAllocatorStorage allocatorStorage,
-//        CallbackInfoReturnable<SectionBuilder.RenderData> cir,
-//        @Local Map.Entry<RenderLayer, BufferBuilder> entry,
-//        @Local SectionBuilder.RenderData renderData
-//    ) {
-//        ((IMixinSectionBuilder.RenderData)(Object) renderData).rubix$getDynColorData().put(
-//            entry.getKey(),
-//            ((IMixinVertexConsumer)entry.getValue()).rubix$getDeferrer().getColorData()
-//        );
-//    }
 
     // isn't @Redirect such an amazing thing? you get a strict subset of the functionality of @WrapOperation but with more problems!
     @Inject(method = "build", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockState;getRenderType()Lnet/minecraft/block/BlockRenderType;"))

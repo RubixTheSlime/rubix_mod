@@ -6,7 +6,6 @@ import com.github.weisj.jsvg.parser.SVGLoader;
 import com.google.gson.JsonArray;
 import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.RubixMod;
-import io.github.rubixtheslime.rubix.util.MoreColor;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;

@@ -37,6 +37,7 @@ public class MixinChunkBuilder implements IMixinChunkBuilder {
 
         @Unique
         void setDynColorData(ChunkBuilder.Buffers buffers, BuiltBuffer builtBuffer) {
+            if (!EnabledMods.GAY_GRASS_VIDEO) return;
             ((IMixinChunkBuilder.Buffers) buffers).rubix$setDynColorData(((IMixinBuiltBuffer) builtBuffer).rubix$getDynColor());
         }
 
@@ -75,10 +76,6 @@ public class MixinChunkBuilder implements IMixinChunkBuilder {
             setDynColorData(buffers, builtBuffer);
         }
 
-        @Mixin(targets = "net.minecraft.client.render.chunk.ChunkBuilder$BuiltChunk$RebuildTask")
-        public static class RebuildTask {
-        }
-
     }
 
     @Mixin(ChunkBuilder.Buffers.class)
@@ -108,11 +105,6 @@ public class MixinChunkBuilder implements IMixinChunkBuilder {
             }
             colorData.upload(vertexBuffer, commandEncoder);
         }
-
-    }
-
-    @Mixin(ChunkBuilder.ChunkData.class)
-    public static class ChunkData implements IMixinChunkBuilder.ChunkData {
 
     }
 

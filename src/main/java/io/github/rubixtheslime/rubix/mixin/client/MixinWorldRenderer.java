@@ -3,9 +3,7 @@ package io.github.rubixtheslime.rubix.mixin.client;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import io.github.rubixtheslime.rubix.EnabledMods;
-import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinChunkBuilder;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
@@ -37,20 +35,15 @@ public abstract class MixinWorldRenderer {
 
     @Shadow private Frustum frustum;
 
-    @Shadow @Final private BufferBuilderStorage bufferBuilders;
-
     @Shadow private @Nullable ChunkBuilder chunkBuilder;
 
     @Shadow @Final private ObjectArrayList<ChunkBuilder.BuiltChunk> builtChunks;
-
-    @Shadow public abstract void tick();
 
     @Inject(method = "render", at = @At("TAIL"))
     public void render(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, Matrix4f positionMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
         if (EnabledMods.REDFILE) {
             MatrixStack stack = new MatrixStack();
             stack.multiplyPositionMatrix(positionMatrix);
-//        stack.translate(client.gameRenderer.getCamera().getPos());
             ((IMixinMinecraftClient) client).rubix$getRedfileResultManager().render(stack, client.gameRenderer.getCamera().getPos(), frustum, world);
         }
         if (EnabledMods.GAY_GRASS_VIDEO) {
@@ -68,6 +61,7 @@ public abstract class MixinWorldRenderer {
         Matrix4f positionMatrix,
         CallbackInfo ci
     ) {
+        if (!EnabledMods.GAY_GRASS_VIDEO) return;
         var list = builtChunks.stream()
             .map(builtChunk -> builtChunk.getBuffers(renderLayer))
             .filter(Objects::nonNull)
@@ -92,6 +86,7 @@ public abstract class MixinWorldRenderer {
         CallbackInfo ci,
         @Local ChunkBuilder.Buffers buffers
     ) {
+        if (!EnabledMods.GAY_GRASS_VIDEO) return;
         CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
         ((IMixinChunkBuilder.Buffers)buffers).rubix$uploadDynColorData(commandEncoder, chunkBuilder == null || ((IMixinChunkBuilder)chunkBuilder).rubix$isStopped());
     }

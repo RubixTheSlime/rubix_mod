@@ -1,6 +1,7 @@
 package io.github.rubixtheslime.rubix.mixin.client;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinVertexConsumer;
 import net.minecraft.block.BlockState;
@@ -28,12 +29,14 @@ public class MixinFluidRenderer {
         @Local boolean bl,
         @Local int i
     ) {
+        if (!EnabledMods.GAY_GRASS_VIDEO) return;
         int color = !bl && RubixModClient.prideFlagManager.isAnimated(pos) ? i | 0xff00_0000 : 0;
         ((IMixinVertexConsumer) vertexConsumer).rubix$getDeferrer().setBaseColor(color);
     }
 
     @Inject(method = "vertex", at = @At("HEAD"), cancellable = true)
     void vertex(VertexConsumer vertexConsumer, float x, float y, float z, float red, float green, float blue, float u, float v, int light, CallbackInfo ci) {
+        if (!EnabledMods.GAY_GRASS_VIDEO) return;
         var deferrer = ((IMixinVertexConsumer)vertexConsumer).rubix$getDeferrer();
         if (deferrer.isAnimating()) {
             deferrer.vertex(x, y, z).color(red, green, blue, 1.0F).texture(u, v).light(light).normal(0.0F, 1.0F, 0.0F);

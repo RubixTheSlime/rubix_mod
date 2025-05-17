@@ -14,19 +14,13 @@
     "MixinWorldTickScheduler"
   ],
   "client": [
-    "client.CMixinAbstractBlock",
-    "client.CMixinAbstractBlock$CMixinAbstractBlockState",
     "client.MixinBiomeColors",
-    "client.MixinBlockColors",
     "client.MixinBlockModelRenderer",
-    "client.MixinBlockRenderManager",
     "client.MixinBufferBuilder",
     "client.MixinBuiltBuffer",
     "client.MixinChunkBuilder",
     "client.MixinChunkBuilder$Buffers",
     "client.MixinChunkBuilder$BuiltChunk",
-    "client.MixinChunkBuilder$BuiltChunk$RebuildTask",
-    "client.MixinChunkBuilder$ChunkData",
     "client.MixinFluidRenderer",
     "client.MixinGlGpuBuffer",
     "client.MixinGlResourceManager",
@@ -34,7 +28,6 @@
     "client.MixinRenderLayer",
     "client.MixinRenderLayer$MultiPhase",
     "client.MixinSectionBuilder",
-    "client.MixinVertexConsumer",
     "client.MixinWorldRenderer",
     "fabric.client.MixinTerrainRenderContext"
   ],

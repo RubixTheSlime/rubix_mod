@@ -2,7 +2,6 @@ package io.github.rubixtheslime.rubix.mixin.client;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.systems.RenderPass;
-import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinRenderLayer;
 import net.minecraft.client.render.BuiltBuffer;
 import net.minecraft.client.render.RenderLayer;

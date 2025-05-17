@@ -8,9 +8,6 @@ import java.util.concurrent.CompletableFuture;
 public interface IMixinChunkBuilder {
     boolean rubix$isStopped();
 
-    interface ChunkData {
-    }
-
     interface Buffers {
         void rubix$setDynColorData(DynColorBuilder.Built data);
         CompletableFuture<Void> rubix$updateDynColorDataFuture();
