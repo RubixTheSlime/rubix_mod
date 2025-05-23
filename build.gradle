@@ -55,10 +55,12 @@ dependencies {
     implementation "com.github.weisj:jsvg:${project.jsvg_version}"
     include "com.github.weisj:jsvg:${project.jsvg_version}"
 
-//    implementation 'org.jcodec:jcodec:0.2.5'
-//    include 'org.jcodec:jcodec:0.2.5'
-//    implementation 'org.jcodec:jcodec-javase:0.2.5'
-//    include 'org.jcodec:jcodec-javase:0.2.5'
+    implementation "org.openpnp:opencv:4.9.0-0"
+
+    implementation 'org.jcodec:jcodec:0.2.5'
+    include 'org.jcodec:jcodec:0.2.5'
+    implementation 'org.jcodec:jcodec-javase:0.2.5'
+    include 'org.jcodec:jcodec-javase:0.2.5'
 
 //    classpath "gradle.plugin.com.gradleup:shadow:8.3.6"
 }

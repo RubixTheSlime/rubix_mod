@@ -1,6 +1,7 @@
 [
   {
     "id": "*",
+    "format": "vector",
     "weight": 1,
     "antialias": false,
     "min_size": 10,

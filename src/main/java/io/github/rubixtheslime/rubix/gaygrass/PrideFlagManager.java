@@ -1,9 +1,7 @@
 package io.github.rubixtheslime.rubix.gaygrass;
 
-import com.github.weisj.jsvg.SVGDocument;
-import com.github.weisj.jsvg.parser.LoaderContext;
-import com.github.weisj.jsvg.parser.SVGLoader;
 import com.google.gson.JsonArray;
+import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.RubixMod;
 import net.minecraft.resource.*;
@@ -14,23 +12,27 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 import net.minecraft.util.profiler.Profiler;
 
-import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 
 public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGetter> {
-    public static final int BASE_LEVEL = 4;
-    private static final ResourceFinder SVG_FINDER = new ResourceFinder("flags", ".svg");
     private final ResourceManager resourceManager;
     private ColorGetter colorGetter;
     private final Random random = new Xoroshiro128PlusPlusRandom(0);
-    private static long time = 0;
+//    private long time = 0;
 
-    public static void setTime(long value) {
-        time = value;
+    public void applyToAnimated(String idStr, Consumer<FlagBuffer.Animated> f) {
+        colorGetter.applyToAnimated(idStr, f);
+    }
+
+    public void setTime(long value) {
+        colorGetter.invalidateTileCache();
+        colorGetter.applyToAnimated("*", animated -> animated.setTime(value));
     }
 
     public PrideFlagManager(ResourceManager resourceManager) {
@@ -42,15 +44,10 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
     }
 
     public int getColor(BlockPos blockPos, boolean animated) {
-        if (!animated && isAnimated(blockPos)) return 0;
-        if (animated && RDebug.b1()) return random.nextInt();
+        if (blockPos == null || !animated && isAnimated(blockPos)) return 0;
         int x = blockPos.getX();
         int z = blockPos.getZ();
-        int res = colorGetter.getColor(x, z);
-        if (animated && RDebug.b0() && ((x + z + time) & 64) == 0) {
-            res = (res & 0xfefefe) >> 1 | 0x808080 | res & 0xff00_0000;
-        }
-        return res;
+        return colorGetter.getColor(x, z);
     }
 
     @Override
@@ -105,32 +102,21 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
 
             var id = Identifier.of(idStr);
             var resourceId = Identifier.of(flagEntry.get(FlagEntry.RESOURCE));
-            var resourcePath = SVG_FINDER.toResourcePath(resourceId);
-            var resource = manager.getResource(resourcePath);
-
-
-            if (resource.isEmpty()) {
-                RubixMod.LOGGER.error("flag not found: {}", resourceId);
-                continue;
-            }
-
-            SVGDocument svgDocument;
             try {
-                var stream = resource.get().getInputStream();
-                var loader = new SVGLoader();
-                svgDocument = loader.load(stream, null, LoaderContext.createDefault());
-                stream.close();
-            } catch (IOException e) {
-                RubixMod.LOGGER.error("IO error happened: {}", e.getLocalizedMessage());
-                return ColorGetter.ofEmpty();
-            }
-            if (svgDocument == null) {
-                RubixMod.LOGGER.error("null svg document");
-                return ColorGetter.ofEmpty();
-            }
+                var getter = FlagBufferGetter.of(flagEntry.get(FlagEntry.FORMAT));
 
-            var flagGetterBuilder = FlagGetter.Builder.of(svgDocument, flagEntry, id);
-            if (flagGetterBuilder != null) builders.addLast(flagGetterBuilder);
+                var resourcePath = getter.toResourcePath(resourceId);
+                var resource = manager.getResource(resourcePath);
+                if (resource.isEmpty()) throw new RuntimeException("failed to find resource");
+
+                var flagBuffer = getter.build(resource.get(), id);
+                if (flagBuffer == null) throw new RuntimeException("null buffer object");
+
+                var flagGetterBuilder = FlagGetter.Builder.of(flagBuffer, flagEntry, id);
+                builders.addLast(flagGetterBuilder);
+            } catch (RuntimeException e) {
+                RubixMod.LOGGER.error("an error occurred while preparing {} (resource id {}): {}", id, resourceId, e.getLocalizedMessage());
+            }
         }
         return ColorGetter.of(builders, globalEntry);
     }
@@ -151,7 +137,11 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
     }
 
     public boolean isAnimated(BlockPos pos) {
-//        return true;
-        return colorGetter.getColor(pos.getX(), pos.getZ()) != 0;
+//        return EnabledMods.GAY_GRASS_VIDEO && colorGetter.getColor(pos.getX(), pos.getZ()) != 0;
+        return EnabledMods.GAY_GRASS_VIDEO && colorGetter.isAnimated(pos.getX(), pos.getZ());
+    }
+
+    public Stream<Identifier> getAnimatedNames() {
+        return colorGetter.getAnimatedNames();
     }
 }

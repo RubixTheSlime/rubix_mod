@@ -9,6 +9,7 @@ public class RubixConfigModel {
 
     @Nest public EnabledMods enabledMods = new EnabledMods();
     @Nest public RedfileOptions redfileOptions = new RedfileOptions();
+    @Nest public GayGrassOptions gayGrassOptions = new GayGrassOptions();
     @Nest public DebugOptions debugOptions = new DebugOptions();
 
     public static class EnabledMods {
@@ -58,6 +59,11 @@ public class RubixConfigModel {
         @Hook public String multishapeUColor = "dd217d";
         @Hook public String multishapeMColor = "ff5f00";
         @Hook public String multishapeSColor = "ffb00d";
+    }
+
+    public static class GayGrassOptions {
+        @RestartRequired
+        public boolean colorAll = false;
     }
 
     public static class DebugOptions {

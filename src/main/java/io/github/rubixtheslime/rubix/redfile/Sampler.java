@@ -36,6 +36,7 @@ public class Sampler {
             var world = RedfileManager.getCurrentWorld();
             var current = RedfileManager.getCurrent();
             ++totalSamples;
+            if (current == null) continue;
             var list = world == null ? defaultList : instances.computeIfAbsent(world.getRegistryKey(), x -> new ConcurrentLinkedDeque<>());
             for (var instance : list) {
                 if (instance.getFilter().test(current)) instance.getCollector().inc(current);

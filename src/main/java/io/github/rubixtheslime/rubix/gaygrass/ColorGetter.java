@@ -2,16 +2,31 @@ package io.github.rubixtheslime.rubix.gaygrass;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.rubixtheslime.rubix.EnabledMods;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.util.Identifier;
 
 import java.awt.image.BufferedImage;
-import java.util.List;
-
-import static io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager.BASE_LEVEL;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public abstract class ColorGetter {
+    public static final int BASE_LEVEL_INDEX = 4;
+    public static final int BASE_LEVEL = 1 << BASE_LEVEL_INDEX;
+    public static final long DOUBLE_BASE_LEVEL = 1L << (BASE_LEVEL_INDEX * 2);
+    public static final int BASE_LEVEL_MASK = BASE_LEVEL - 1;
+    private final Map<Identifier, FlagBuffer.Animated> animatedBuffers;
+
+    protected ColorGetter(Map<Identifier, FlagBuffer.Animated> animatedBuffers) {
+        this.animatedBuffers = animatedBuffers;
+    }
+
     public abstract int getColor(int x, int z);
+    public abstract boolean isAnimated(int x, int z);
 
     public abstract void invalidateCaches();
+    public abstract void invalidateTileCache();
 
     public static ColorGetter ofEmpty() {
         return new Empty();
@@ -19,22 +34,56 @@ public abstract class ColorGetter {
 
     public static ColorGetter of(List<FlagGetter.Builder> flagBuilders, FlagEntry globalEntry) {
         if (flagBuilders.isEmpty()) return ofEmpty();
+        Map<Identifier, FlagBuffer.Animated> map = new Object2ObjectOpenHashMap<>();
+        for (var builder : flagBuilders) {
+            var animated = builder.getBuffer().asAnimated();
+            if (animated != null) {
+                map.put(builder.getBuffer().getIdentifier(), animated);
+            }
+        }
         double avgArea = FlagGetter.Builder.avgArea(flagBuilders);
-        double expectedCount = globalEntry.get(FlagEntry.DENSITY) * (1L << (BASE_LEVEL * 2)) / avgArea;
-        var flagGetter = FlagGetter.of(flagBuilders, expectedCount, globalEntry, BASE_LEVEL, 0);
-        return new Actual(flagGetter);
+        double expectedCount = globalEntry.get(FlagEntry.DENSITY) * DOUBLE_BASE_LEVEL / avgArea;
+        var flagGetter = FlagGetter.of(flagBuilders, expectedCount, globalEntry, BASE_LEVEL_INDEX, EnabledMods.GAY_GRASS_VIDEO ? 64 : 0);
+        return new Actual(flagGetter, map);
     }
 
     public abstract void setBiomeSeed(long biomeSeed);
 
+    public void applyToAnimated(String idStr, Consumer<FlagBuffer.Animated> f) {
+        if (Objects.equals(idStr, "*")) {
+            animatedBuffers.values().forEach(f);
+            return;
+        }
+        var buffer = animatedBuffers.get(Identifier.of(idStr));
+        if (buffer != null) f.accept(buffer);
+    }
+
+    public Stream<Identifier> getAnimatedNames() {
+        return animatedBuffers.keySet()
+            .stream();
+    }
+
     private static final class Empty extends ColorGetter {
+        private Empty() {
+            super(Map.of());
+        }
+
         @Override
         public int getColor(int x, int z) {
             return 0;
         }
 
         @Override
+        public boolean isAnimated(int x, int z) {
+            return false;
+        }
+
+        @Override
         public void invalidateCaches() {
+        }
+
+        @Override
+        public void invalidateTileCache() {
         }
 
         @Override
@@ -45,38 +94,73 @@ public abstract class ColorGetter {
     private static final class Actual extends ColorGetter {
         private final FlagGetter flagGetter;
 
+        private final Cache<Long, BitSet> isAnimatedCache = EnabledMods.GAY_GRASS_VIDEO ? Caffeine.newBuilder()
+            .maximumSize(64)
+            .build() : null;
         private final Cache<Long, BufferedImage> tileImageCache = Caffeine.newBuilder()
-            .maximumSize(256)
+            .maximumSize(64)
             .build();
 
-        private Actual(FlagGetter flagGetter) {
+        private Actual(FlagGetter flagGetter, Map<Identifier, FlagBuffer.Animated> animatedBuffers) {
+            super(animatedBuffers);
             this.flagGetter = flagGetter;
+        }
+
+        private BufferedImage getImage(int tileX, int tileZ, FlagInstance.AnimationKey animationKey) {
+            BufferedImage image = new BufferedImage(BASE_LEVEL, BASE_LEVEL, BufferedImage.TYPE_INT_ARGB);
+            for (var buffer : flagGetter.getBuffers(tileX, tileZ)) {
+                buffer.applyTo(tileX << BASE_LEVEL_INDEX, tileZ << BASE_LEVEL_INDEX, image, animationKey);
+            }
+            return image;
         }
 
         @Override
         public int getColor(int x, int z) {
-            int tileX = ((int) x) >> BASE_LEVEL;
-            int tileZ = ((int) z) >> BASE_LEVEL;
-            var bufferedImage = tileImageCache.get(PrideFlagManager.merge(tileX, tileZ), a -> {
-                BufferedImage image = new BufferedImage(1 << BASE_LEVEL, 1 << BASE_LEVEL, BufferedImage.TYPE_INT_ARGB);
-                for (var buffer : flagGetter.getBuffers(tileX, tileZ)) {
-                    buffer.applyTo(tileX << BASE_LEVEL, tileZ << BASE_LEVEL, image);
+            int tileX = x >> BASE_LEVEL_INDEX;
+            int tileZ = z >> BASE_LEVEL_INDEX;
+            var bufferedImage = tileImageCache.get(PrideFlagManager.merge(tileX, tileZ), a -> getImage(tileX, tileZ, FlagInstance.AnimationKey.ACTUAL));
+            assert bufferedImage != null;
+            return bufferedImage.getRGB(x & BASE_LEVEL_MASK, z & BASE_LEVEL_MASK);
+        }
+
+        @Override
+        public boolean isAnimated(int x, int z) {
+            if (isAnimatedCache == null) return false;
+            int tileX = x >> BASE_LEVEL_INDEX;
+            int tileZ = z >> BASE_LEVEL_INDEX;
+            var bitset = isAnimatedCache.get(PrideFlagManager.merge(tileX, tileZ), a -> {
+                var image = getImage(tileX, tileZ, FlagInstance.AnimationKey.ACTUAL);
+                var blackImage = getImage(tileX, tileZ, FlagInstance.AnimationKey.BLACK);
+                var whiteImage = getImage(tileX, tileZ, FlagInstance.AnimationKey.WHITE);
+                var res = new BitSet();
+                for (int i = 0; i < DOUBLE_BASE_LEVEL; i++) {
+                    int ix = i >> BASE_LEVEL_INDEX;
+                    int iy = i & BASE_LEVEL_MASK;
+                    res.set(i, image.getRGB(ix, iy) != 0 && blackImage.getRGB(ix, iy) != whiteImage.getRGB(ix, iy));
                 }
-                return image;
+                return res;
             });
-            int mask = ~(-1 << BASE_LEVEL);
-            return bufferedImage.getRGB(((int) x) & mask, ((int) z) & mask);
+            return bitset.get((x & BASE_LEVEL_MASK) << BASE_LEVEL_INDEX | z & BASE_LEVEL_MASK);
+
         }
 
         @Override
         public void invalidateCaches() {
             tileImageCache.invalidateAll();
+            if (isAnimatedCache != null) isAnimatedCache.invalidateAll();
             flagGetter.invalidateCaches();
+        }
+
+        @Override
+        public void invalidateTileCache() {
+            tileImageCache.invalidateAll();
         }
 
         @Override
         public void setBiomeSeed(long biomeSeed) {
             this.flagGetter.setBiomeSeed(biomeSeed);
         }
+
     }
+
 }

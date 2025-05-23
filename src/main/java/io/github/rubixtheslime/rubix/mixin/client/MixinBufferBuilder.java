@@ -24,7 +24,7 @@ public abstract class MixinBufferBuilder implements VertexConsumer, IMixinVertex
 
     @Override
     public DynColorBuilder rubix$getDeferrer() {
-        if (!EnabledMods.GAY_GRASS_VIDEO || deferrer == null) deferrer = new DynColorBuilder(vertexFormat);
+        if (deferrer == null) deferrer = new DynColorBuilder(vertexFormat);
         return deferrer;
     }
 

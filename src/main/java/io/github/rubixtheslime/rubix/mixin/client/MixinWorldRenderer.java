@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.rubixtheslime.rubix.EnabledMods;
+import io.github.rubixtheslime.rubix.client.RubixModClient;
 import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinChunkBuilder;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
@@ -25,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Mixin(WorldRenderer.class)
@@ -39,6 +41,8 @@ public abstract class MixinWorldRenderer {
 
     @Shadow @Final private ObjectArrayList<ChunkBuilder.BuiltChunk> builtChunks;
 
+    @Shadow protected abstract void renderLayer(RenderLayer renderLayer, double x, double y, double z, Matrix4f viewMatrix, Matrix4f positionMatrix);
+
     @Inject(method = "render", at = @At("TAIL"))
     public void render(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, Matrix4f positionMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
         if (EnabledMods.REDFILE) {
@@ -47,7 +51,7 @@ public abstract class MixinWorldRenderer {
             ((IMixinMinecraftClient) client).rubix$getRedfileResultManager().render(stack, client.gameRenderer.getCamera().getPos(), frustum, world);
         }
         if (EnabledMods.GAY_GRASS_VIDEO) {
-            PrideFlagManager.setTime(System.currentTimeMillis() / 16);
+            RubixModClient.prideFlagManager.setTime(System.currentTimeMillis() / 16);
         }
     }
 
@@ -62,16 +66,21 @@ public abstract class MixinWorldRenderer {
         CallbackInfo ci
     ) {
         if (!EnabledMods.GAY_GRASS_VIDEO) return;
-        var list = builtChunks.stream()
-            .map(builtChunk -> builtChunk.getBuffers(renderLayer))
-            .filter(Objects::nonNull)
-            .map(buffers -> ((IMixinChunkBuilder.Buffers)buffers).rubix$updateDynColorDataFuture())
-            .toList();
-        try {
-            Util.combine(list).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+        for (var builtChunk : builtChunks) {
+            var buffers = builtChunk.getBuffers(renderLayer);
+            if (buffers == null) continue;
+            ((IMixinChunkBuilder.Buffers)buffers).rubix$updateDynColorDataFuture();
         }
+//        var list = builtChunks.stream()
+//            .map(builtChunk -> builtChunk.getBuffers(renderLayer))
+//            .filter(Objects::nonNull)
+//            .map(buffers -> ((IMixinChunkBuilder.Buffers)buffers).rubix$updateDynColorDataFuture())
+//            .toList();
+//        try {
+//            Util.combine(list).get();
+//        } catch (InterruptedException | ExecutionException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
 

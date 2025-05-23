@@ -6,6 +6,9 @@
   "mixins": [
     "MixinAbstractBlock",
     "MixinAbstractBlock$MixinAbstractBlockState",
+    "MixinBlockEntityTickInvoker",
+    "MixinBlockEvent",
+    "MixinBlockPos",
     "MixinEntity",
     "MixinServerChunkLoadingManager",
     "MixinServerTickManager",
@@ -15,6 +18,7 @@
   ],
   "client": [
     "client.MixinBiomeColors",
+    "client.MixinBlockColors",
     "client.MixinBlockModelRenderer",
     "client.MixinBufferBuilder",
     "client.MixinBuiltBuffer",

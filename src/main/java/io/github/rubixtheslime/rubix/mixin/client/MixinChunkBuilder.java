@@ -91,6 +91,11 @@ public class MixinChunkBuilder implements IMixinChunkBuilder {
         }
 
         @Override
+        public void rubix$updateDynColorData() {
+            if (colorData != null) colorData.update();
+        }
+
+        @Override
         public CompletableFuture<Void> rubix$updateDynColorDataFuture() {
             if (colorData == null) return CompletableFuture.completedFuture(null);
             return CompletableFuture.runAsync(() -> colorData.update());

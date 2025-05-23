@@ -10,6 +10,8 @@ public interface IMixinChunkBuilder {
 
     interface Buffers {
         void rubix$setDynColorData(DynColorBuilder.Built data);
+
+        void rubix$updateDynColorData();
         CompletableFuture<Void> rubix$updateDynColorDataFuture();
 
         void rubix$uploadDynColorData(CommandEncoder commandEncoder, boolean stopped);

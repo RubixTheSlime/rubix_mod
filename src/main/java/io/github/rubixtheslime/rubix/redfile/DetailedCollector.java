@@ -19,13 +19,8 @@ public class DetailedCollector extends DataCollector {
     }
 
     @Override
-    public void incBlock(BlockPos pos) {
+    public void inc(BlockPos pos) {
         data.merge(pos.asLong(), 1L, Long::sum);
-    }
-
-    @Override
-    public void incEntity(Entity entity) {
-        incBlock(entity.getBlockPos());
     }
 
     @Override

@@ -32,14 +32,16 @@ public class MixinMinecraftClient implements IMixinMinecraftClient {
 
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/resource/language/LanguageManager;<init>(Ljava/lang/String;Ljava/util/function/Consumer;)V"))
     public void init(RunArgs args, CallbackInfo ci) {
-        if (!EnabledMods.GAY_GRASS) return;
-        RubixModClient.prideFlagManager = new PrideFlagManager(resourceManager);
-        resourceManager.registerReloader(RubixModClient.prideFlagManager);
+        if (EnabledMods.GAY_GRASS) {
+            RubixModClient.prideFlagManager = new PrideFlagManager(resourceManager);
+            resourceManager.registerReloader(RubixModClient.prideFlagManager);
+        }
     }
 
     @Inject(method = "joinWorld", at = @At("HEAD"))
     public void joinWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
-        if (!EnabledMods.GAY_GRASS) return;
-        RubixModClient.prideFlagManager.setBiomeSeed(world.getBiomeAccess().seed);
+        if (EnabledMods.GAY_GRASS) {
+            RubixModClient.prideFlagManager.setBiomeSeed(world.getBiomeAccess().seed);
+        }
     }
 }

@@ -43,7 +43,7 @@ public abstract class MixinServerWorld {
 
     @Inject(method = "processBlockEvent", at = @At("HEAD"))
     public void processBlockEventEnter(BlockEvent event, CallbackInfoReturnable<Boolean> cir) {
-        RedfileManager.enter(event.pos());
+        RedfileManager.enter(event);
     }
 
     @Inject(method = "processSyncedBlockEvents", at = @At("TAIL"))

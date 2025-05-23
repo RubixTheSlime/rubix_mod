@@ -18,12 +18,7 @@ public class SummaryCollector extends DataCollector {
     }
 
     @Override
-    public void incBlock(BlockPos pos) {
-        ++count;
-    }
-
-    @Override
-    public void incEntity(Entity entity) {
+    public void inc(BlockPos pos) {
         ++count;
     }
 

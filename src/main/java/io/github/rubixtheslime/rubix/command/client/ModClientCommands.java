@@ -10,6 +10,7 @@ public class ModClientCommands {
 
     public static void init() {
         if (EnabledMods.REDFILE) ClientCommandRegistrationCallback.EVENT.register(RedfiledCommand::register);
+        if (EnabledMods.GAY_GRASS_VIDEO) ClientCommandRegistrationCallback.EVENT.register(GayGrassCommand::register);
     }
 
     public static BlockPos getBlockPos(CommandContext<FabricClientCommandSource> context, String name) {

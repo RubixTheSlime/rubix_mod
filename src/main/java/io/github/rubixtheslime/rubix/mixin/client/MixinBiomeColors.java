@@ -17,7 +17,7 @@ public class MixinBiomeColors {
 
     @Inject(method = "getColor", at = @At("RETURN"), cancellable = true)
     private static void getColorGayify(BlockRenderView world, BlockPos pos, ColorResolver resolver, CallbackInfoReturnable<Integer> cir) {
-        if (!EnabledMods.GAY_GRASS) return;
+        if (!EnabledMods.GAY_GRASS || EnabledMods.GAY_GRASS_ALL) return;
         int initial = cir.getReturnValue();
         cir.setReturnValue(MoreColor.alphaBlend(RubixModClient.prideFlagManager.getColor(pos, false), initial));
     }

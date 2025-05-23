@@ -3,9 +3,9 @@ package io.github.rubixtheslime.rubix.gaygrass;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.weisj.jsvg.SVGDocument;
+import io.github.rubixtheslime.rubix.RubixMod;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.random.LocalRandom;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 
@@ -54,6 +54,7 @@ public class FlagGetter {
         var entryGetter = WeightedRandomGetter.of(map, Comparator.comparing(a -> a.name));
         var parent = builders.isEmpty() ? null : of(builders, remainingExpectedCount * 4, globalEntry, level + 1, 64);
         long paprika = globalEntry.get(FlagEntry.PAPRIKA);
+        RubixMod.LOGGER.info("paprika: {}", paprika);
         if (cacheCount == 0) return new FlagGetter(entryGetter, splitExpectedCount, paprika, level, parent);
         return new Cached(entryGetter, splitExpectedCount, paprika, level, parent, cacheCount);
     }
@@ -70,8 +71,8 @@ public class FlagGetter {
         random.setSeed(n);
     }
 
-    public List<FlagBuffer> getBuffers(int tileX, int tileZ) {
-        List<FlagBuffer> list;
+    public List<FlagInstance> getBuffers(int tileX, int tileZ) {
+        List<FlagInstance> list;
         var rect = new Rectangle2D.Double(tileX << level, tileZ << level, 1 << level, 1 << level);
         list = new ArrayList<>();
         if (parent != null) {
@@ -82,7 +83,7 @@ public class FlagGetter {
             }
         }
 
-        var newBuffers = new ArrayList<FlagBuffer>();
+        var newBuffers = new ArrayList<FlagInstance>();
         Random random = getRandom(0);
         for (int checkX = tileX - 1; checkX <= tileX + 1; ++checkX) {
             for (int checkZ = tileZ - 1; checkZ <= tileZ + 1; ++checkZ) {
@@ -102,7 +103,7 @@ public class FlagGetter {
                 }
             }
         }
-        newBuffers.sort(FlagBuffer::compareZIndex);
+        newBuffers.sort(FlagInstance::compareZIndex);
 
         list.addAll(newBuffers);
         return list;
@@ -117,7 +118,7 @@ public class FlagGetter {
     }
 
     public static class Cached extends FlagGetter {
-        private final Cache<Long, List<FlagBuffer>> cache;
+        private final Cache<Long, List<FlagInstance>> cache;
 
         private Cached(WeightedRandomGetter<Entry> flagGetter, double chance, long worldSeed, int level, FlagGetter parent, int size) {
             super(flagGetter, chance, worldSeed, level, parent);
@@ -127,7 +128,7 @@ public class FlagGetter {
         }
 
         @Override
-        public List<FlagBuffer> getBuffers(int tileX, int tileZ) {
+        public List<FlagInstance> getBuffers(int tileX, int tileZ) {
             return cache.get(PrideFlagManager.merge(tileX, tileZ), a -> super.getBuffers(tileX, tileZ));
         }
 
@@ -138,7 +139,7 @@ public class FlagGetter {
     }
 
     public static class Builder {
-        private final SVGDocument svgDocument;
+        private final FlagBuffer flagBuffer;
         private final AffineTransform baseTransform;
         private final FlagEntry flagEntry;
         private final Identifier name;
@@ -147,8 +148,8 @@ public class FlagGetter {
         private double maxRadiusScaled;
         private double weight;
 
-        public Builder(SVGDocument svgDocument, AffineTransform baseTransform, FlagEntry flagEntry, Scale scale, Identifier name) {
-            this.svgDocument = svgDocument;
+        public Builder(FlagBuffer flagBuffer, AffineTransform baseTransform, FlagEntry flagEntry, Scale scale, Identifier name) {
+            this.flagBuffer = flagBuffer;
             this.baseTransform = baseTransform;
             this.minRadiusScaled = scale.inv(flagEntry.get(FlagEntry.MIN_SIZE) * 0.5);
             this.maxRadiusScaled = scale.inv(flagEntry.get(FlagEntry.MAX_SIZE) * 0.5);
@@ -180,7 +181,6 @@ public class FlagGetter {
         }
 
         private void splitInto(Map<Entry, Double> entries, int level) {
-//            double splitPoint = Math.log(2) * level;
             double splitPoint = scale.inv(1L << level);
 
             if (splitPoint < minRadiusScaled) return;
@@ -196,38 +196,37 @@ public class FlagGetter {
         }
 
         public double avgArea() {
-            var size = svgDocument.size();
-            double w = size.width;
-            double h = size.height;
+            double w = flagBuffer.width();
+            double h = flagBuffer.height();
             // integrate over radius & multiply by area per square radius. assumes the svg is a full rectangle
             // `* 2` is to divide squared diagonal to get square radius, but is then halved by the constant in the
             // integral of `exp(2*x)`
             // also divide by the range to make it an average
             return (scale.integralOfSquared(minRadiusScaled, maxRadiusScaled)) * w * h * 4
                 / ((w * w + h * h) * (maxRadiusScaled - minRadiusScaled));
-//            return (Math.pow(maxRadiusScaled, power * 2 + 1) - Math.pow(minRadiusScaled, power * 2 + 1)) * w * h * 2
-//                / ((w * w + h * h) * (power * 2 + 1) * (maxRadiusScaled - minRadiusScaled));
         }
 
         public double getWeight() {
             return weight;
         }
 
-        public static Builder of(SVGDocument svgDocument, FlagEntry flagEntry, Identifier identifier) {
-            var size = svgDocument.size();
-            float scale = 2f / (float) Math.hypot(size.width, size.height);
+        public static Builder of(FlagBuffer flagBuffer, FlagEntry flagEntry, Identifier identifier) throws RuntimeException {
+            float scale = 2f / (float) Math.hypot(flagBuffer.width(), flagBuffer.height());
             var transform = AffineTransform.getScaleInstance(scale, scale);
-            transform.translate(-size.width / 2, -size.height / 2);
+            transform.translate(-flagBuffer.width() / 2, -flagBuffer.height() / 2);
             var scaleImpl = Scale.of(flagEntry.get(FlagEntry.SCALE));
-            if (scaleImpl == null) return null;
+            if (scaleImpl == null) throw new RuntimeException("invalid scale name for %s: %s".formatted(identifier, flagEntry.get(FlagEntry.SCALE)));
 
-            return new Builder(svgDocument, transform, flagEntry, scaleImpl, identifier);
+            return new Builder(flagBuffer, transform, flagEntry, scaleImpl, identifier);
         }
 
+        public FlagBuffer getBuffer() {
+            return flagBuffer;
+        }
     }
 
     private static class Entry {
-        private final SVGDocument svgDocument;
+        private final FlagBuffer flagBuffer;
         private final AffineTransform baseTransform;
         private final double minRadiusScaled;
         private final double rangeRadiusScaled;
@@ -238,7 +237,7 @@ public class FlagGetter {
         private final Identifier name;
 
         private Entry(Builder builder, double minRadiusScaled, double maxRadiusScaled, int level) {
-            this.svgDocument = builder.svgDocument;
+            this.flagBuffer = builder.flagBuffer;
             this.baseTransform = builder.baseTransform;
             this.opacity = builder.flagEntry.get(FlagEntry.OPACITY);
             this.antialiasKey = builder.flagEntry.get(FlagEntry.ANTIALIAS) ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF;
@@ -249,7 +248,7 @@ public class FlagGetter {
             this.scale = builder.scale;
         }
 
-        public FlagBuffer makeRandom(Random random, long tileX, long tileZ) {
+        public FlagInstance makeRandom(Random random, long tileX, long tileZ) {
             double translateX = (random.nextDouble() + tileX) * (1 << level);
             double translateZ = (random.nextDouble() + tileZ) * (1 << level);
             double rotation = random.nextDouble() * Math.PI * 2;
@@ -257,12 +256,12 @@ public class FlagGetter {
             return make(translateX, translateZ, rotation, radius);
         }
 
-        public FlagBuffer make(double x, double z, double rotation, double radius) {
+        public FlagInstance make(double x, double z, double rotation, double radius) {
             var transform = AffineTransform.getTranslateInstance(x, z);
             transform.rotate(rotation);
             transform.scale(radius, radius);
             transform.concatenate(baseTransform);
-            return new FlagBuffer(svgDocument, transform, radius, opacity, antialiasKey);
+            return new FlagInstance(flagBuffer, transform, radius, opacity, antialiasKey);
         }
 
     }

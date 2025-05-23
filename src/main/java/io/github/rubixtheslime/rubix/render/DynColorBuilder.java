@@ -165,6 +165,7 @@ public class DynColorBuilder implements VertexConsumer {
         private final int vertexWidth;
         private final int size;
         private final long bufferPointer;
+        private boolean changed = false;
         private boolean closed = false;
 
         private Built(List<ColumnEntry> colorData, int uploadOffset, int vertexWidth, int size, long bufferPointer) {
@@ -182,13 +183,15 @@ public class DynColorBuilder implements VertexConsumer {
             buffer.order(ByteOrder.LITTLE_ENDIAN);
             int injectPoint = 0;
             for (var columnEntry : colorData) {
-                blender.topArgb(manager.getColor(new BlockPos(columnEntry.x, 0, columnEntry.z), true));
+                int topColor = manager.getColor(new BlockPos(columnEntry.x, 0, columnEntry.z), true);
+                if (topColor == columnEntry.lastColor) continue;
+                blender.topArgb(topColor);
+                changed = true;
                 for (var colorEntry : columnEntry.data) {
                     blender.bottomRgb(colorEntry.baseColor);
                     for (int shade : colorEntry.shades) {
                         blender.shadePrecomped(shade);
-                        int color = blender.getFullAbgr();
-                        buffer.putInt(injectPoint, color);
+                        buffer.putInt(injectPoint, blender.getFullAbgr());
                         injectPoint += vertexWidth;
                     }
                 }
@@ -196,7 +199,8 @@ public class DynColorBuilder implements VertexConsumer {
         }
 
         public void upload(GpuBuffer gpuBuffer, CommandEncoder commandEncoder) {
-            commandEncoder.writeToBuffer(gpuBuffer, getBuffer(), uploadOffset);
+            if (changed) commandEncoder.writeToBuffer(gpuBuffer, getBuffer(), uploadOffset);
+            changed = false;
         }
 
         public ByteBuffer getBuffer() {
@@ -215,13 +219,25 @@ public class DynColorBuilder implements VertexConsumer {
         }
     }
 
-    public record ColumnEntry(int x, int z, List<BaseColorEntry> data) {
+    private static final class ColumnEntry {
+        private final int x;
+        private final int z;
+        private final List<BaseColorEntry> data;
+        private int lastColor = 0;
+
+        public ColumnEntry(int x, int z, List<BaseColorEntry> data) {
+            this.x = x;
+            this.z = z;
+            this.data = data;
+        }
+
         public int totalVerts() {
             return data.stream().mapToInt(x -> x.shades.size()).sum();
         }
+
     }
 
-    public record BaseColorEntry(int baseColor, List<Integer> shades) {}
+    private record BaseColorEntry(int baseColor, List<Integer> shades) {}
 
     private static class DynColorVertex {
         private long blockPos;

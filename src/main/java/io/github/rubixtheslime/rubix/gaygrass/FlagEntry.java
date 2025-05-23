@@ -21,7 +21,7 @@ public final class FlagEntry {
     public static Key<Long> PAPRIKA = ofSimple(Long.class, "paprika");
     public static Key<Boolean> ANTIALIAS = ofSimple(Boolean.class, "antialias");
     public static Key<Boolean> MODIFY = ofSimple(Boolean.class, "modify");
-//    public static Key<Boolean> REPLACE = ofSimple(Boolean.class, "replace");
+    public static Key<String> FORMAT = ofSimple(String.class, "format");
     public static Key<String> SCALE = ofSimple(String.class, "scale");
     public static Key<String> ID = ofSimple(String.class, "id");
     public static Key<String> RESOURCE = ofSimple(String.class, "resource");
