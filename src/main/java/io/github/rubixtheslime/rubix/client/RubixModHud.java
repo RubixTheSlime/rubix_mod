@@ -2,6 +2,8 @@ package io.github.rubixtheslime.rubix.client;
 
 import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
+import io.github.rubixtheslime.rubix.redfile.RedfileSummarizer;
+import io.github.rubixtheslime.rubix.util.MoreMath;
 import io.github.rubixtheslime.rubix.util.Util;
 import net.fabricmc.fabric.api.client.rendering.v1.HudLayerRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.IdentifiedLayer;
@@ -50,12 +52,15 @@ public class RubixModHud {
         var lookingAt = manager.getLookingAt(client);
         var sumOfSelected = manager.getSumOfSelected(client.world);
         List<String> lines = new ArrayList<>();
+        boolean dislayConfidence = RubixMod.CONFIG.redfileOptions.displayConfidenceHud();
         if (lookingAt != null) {
             var interval = lookingAt.getInterval();
-            lines.addLast(Text.translatable("rubix.hud.redfile.value", Util.formatTime(interval.getLowerBound()), Util.formatTime(interval.getUpperBound())).getString());
+            var rangeStr = Util.formatTimeInterval(RedfileSummarizer.CompareMode.RANGE, interval, dislayConfidence, false);
+            lines.addLast(Text.translatable("rubix.hud.redfile.value", rangeStr).getString());
         }
         if (sumOfSelected != null) {
-            lines.addLast(Text.translatable("rubix.hud.redfile.sum", Util.formatTime(sumOfSelected.getLowerBound()), Util.formatTime(sumOfSelected.getUpperBound())).getString());
+            var rangeStr = Util.formatTimeInterval(RedfileSummarizer.CompareMode.RANGE, sumOfSelected, dislayConfidence, false);
+            lines.addLast(Text.translatable("rubix.hud.redfile.sum", rangeStr).getString());
         }
         if (lines.isEmpty()) return;
         var textRenderer = MinecraftClient.getInstance().textRenderer;

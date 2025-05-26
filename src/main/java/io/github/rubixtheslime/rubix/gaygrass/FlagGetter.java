@@ -54,7 +54,6 @@ public class FlagGetter {
         var entryGetter = WeightedRandomGetter.of(map, Comparator.comparing(a -> a.name));
         var parent = builders.isEmpty() ? null : of(builders, remainingExpectedCount * 4, globalEntry, level + 1, 64);
         long paprika = globalEntry.get(FlagEntry.PAPRIKA);
-        RubixMod.LOGGER.info("paprika: {}", paprika);
         if (cacheCount == 0) return new FlagGetter(entryGetter, splitExpectedCount, paprika, level, parent);
         return new Cached(entryGetter, splitExpectedCount, paprika, level, parent, cacheCount);
     }

@@ -1,8 +1,11 @@
 package io.github.rubixtheslime.rubix.util;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.special.Erf;
 import org.apache.commons.math3.stat.interval.ConfidenceInterval;
 import org.apache.commons.math3.util.FastMath;
+
+import java.math.BigDecimal;
 
 public class MoreMath {
 
@@ -26,5 +29,113 @@ public class MoreMath {
         final double lowerBound = factor * (modifiedSuccessRatio - difference);
         final double upperBound = factor * (modifiedSuccessRatio + difference);
         return new ConfidenceInterval(lowerBound, upperBound, confidenceLevel);
+    }
+
+    public static ConfidenceInterval clampZero(ConfidenceInterval interval) {
+        if (interval == null) return null;
+        return new ConfidenceInterval(Math.max(interval.getLowerBound(), 0), interval.getUpperBound(), interval.getConfidenceLevel());
+    }
+
+    public static ConfidenceInterval normalHighBoundInterval(double mean, double stdDev, double alpha) {
+        double z = Erf.erfInv(1 - alpha * 2);
+        double lowerBound = Float.NEGATIVE_INFINITY;
+        double upperBound = mean + stdDev * z;
+        if (lowerBound == upperBound) upperBound += Math.ulp(upperBound);
+        return new ConfidenceInterval(lowerBound, upperBound, 1 - alpha);
+    }
+
+    public static ConfidenceInterval normalLowBoundInterval(double mean, double stdDev, double alpha) {
+        double z = Erf.erfInv(1 - alpha * 2);
+        double lowerBound = mean - stdDev * z;
+        double upperBound = Float.POSITIVE_INFINITY;
+        if (lowerBound == upperBound) lowerBound -= Math.ulp(lowerBound);
+        return new ConfidenceInterval(lowerBound, upperBound, 1 - alpha);
+    }
+
+    public static ConfidenceInterval normalMiddleInterval(double mean, double stdDev, double alpha) {
+        double z = Erf.erfInv(1 - alpha);
+        double lowerBound = mean - stdDev * z;
+        double upperBound = mean + stdDev * z;
+        if (lowerBound == upperBound) upperBound += Math.ulp(upperBound);
+        if (lowerBound == upperBound) lowerBound -= Math.ulp(lowerBound);
+        return new ConfidenceInterval(lowerBound, upperBound, 1 - alpha);
+    }
+
+    public static class MeanAndVar {
+        double mean = 0;
+        double variance = 0;
+
+        public MeanAndVar() {
+        }
+
+        public MeanAndVar(double mean, double variance) {
+            this.mean = mean;
+            this.variance = variance;
+        }
+
+        public static MeanAndVar unpack(long packed) {
+            return new MeanAndVar(Float.intBitsToFloat((int) (packed >> 32)), Float.intBitsToFloat((int) packed));
+        }
+
+        public ConfidenceInterval middleInterval(double alpha) {
+            return normalMiddleInterval(mean, stdDev(), alpha);
+        }
+
+        public void add(MeanAndVar other) {
+            mean += other.mean;
+            variance += other.variance;
+        }
+
+        public void sub(MeanAndVar other) {
+            mean -= other.mean;
+            variance += other.variance;
+        }
+
+        /// finalize the results for the case of estimating the mean
+        public void finishPredictive(int n) {
+            variance /= (n - 1) * n;
+        }
+
+        public void update(double x, int n) {
+            double d = x - mean;
+            mean += d / n;
+            double d2 = x - mean;
+            variance += d * d2;
+        }
+
+        public long pack() {
+            return (long) Float.floatToRawIntBits((float) mean) << 32 | Float.floatToRawIntBits((float) variance);
+        }
+
+        public double mean() {
+            return mean;
+        }
+
+        public double variance() {
+            return variance;
+        }
+
+        public double stdDev() {
+            return Math.sqrt(variance);
+        }
+
+        public MeanAndVar copy() {
+            return new MeanAndVar(mean, variance);
+        }
+    }
+
+    public static class MeanVarAcc {
+        BigDecimal mean = BigDecimal.ZERO;
+        BigDecimal variance = BigDecimal.ZERO;
+
+        public void add(MeanAndVar meanAndVar) {
+            if (meanAndVar == null) return;
+            mean = mean.add(BigDecimal.valueOf(meanAndVar.mean));
+            variance = variance.add(BigDecimal.valueOf(meanAndVar.variance));
+        }
+
+        public MeanAndVar finish() {
+            return new MeanAndVar(mean.doubleValue(), variance.doubleValue());
+        }
     }
 }

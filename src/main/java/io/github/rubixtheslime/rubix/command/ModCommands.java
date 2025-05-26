@@ -12,12 +12,12 @@ import java.util.function.Supplier;
 public class ModCommands {
     public static void init() {
         ArgumentTypeRegistry.registerArgumentType(
-            Identifier.of(RubixMod.MOD_ID, "redfile_detail"),
-            ModEnumType.Detail.class, ConstantArgumentSerializer.of(ModEnumType.Detail::detail)
+            Identifier.of(RubixMod.MOD_ID, "redfile_compare_mode"),
+            ModEnumType.CompareModeArgument.class, ConstantArgumentSerializer.of(ModEnumType.CompareModeArgument::compareMode)
         );
         ArgumentTypeRegistry.registerArgumentType(
             Identifier.of(RubixMod.MOD_ID, "redfile_extended_time_unit"),
-            ModEnumType.ExtendedRedfileTimeUnit.class, ConstantArgumentSerializer.of(ModEnumType.ExtendedRedfileTimeUnit::unit)
+            ModEnumType.RedfileTimeUnitArgument.class, ConstantArgumentSerializer.of(ModEnumType.RedfileTimeUnitArgument::unit)
         );
         if (EnabledMods.REDFILE) CommandRegistrationCallback.EVENT.register(RedfileCommand::register);
     }

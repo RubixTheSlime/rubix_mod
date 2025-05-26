@@ -17,7 +17,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.BufferAllocator;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.argument.BlockStateArgument;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.math.BlockBox;
@@ -49,16 +48,16 @@ public class RedfileResultManager {
     public void addDebug(BlockPos pos, int width, World world) {
         Map<Long, Long> map = new Long2LongOpenHashMap(width * 12);
         for (int i = 0; i < 12 * width; i++) {
-            long sampleCount = (long) Math.pow(10, ((double) i / width) + 3);
+            long sampleCount = new MoreMath.MeanAndVar(Math.pow(10, ((double) i / width) - 9), 0).pack();
             int dcol = i % (width * 2);
             long longBlockPos = BlockPos.asLong(pos.getX() + Math.min(dcol, width * 2  - 1 - dcol), pos.getY(), pos.getZ() + (i / width));
             map.put(longBlockPos, sampleCount);
         }
-        addResult(new RedfileResultPacket(map, (long) 1e18, 1e6), world);
+        addResult(new RedfileResultPacket(map), world);
     }
 
     public boolean addEmpty(World world) {
-        addResult(new RedfileResultPacket(Collections.emptyMap(), 0, 0), world);
+        addResult(new RedfileResultPacket(Collections.emptyMap()), world);
         return true;
     }
 
@@ -66,7 +65,7 @@ public class RedfileResultManager {
         var entry = results.computeIfAbsent(world.getRegistryKey(), x ->
             new WorldEntry(new ArrayList<>(), new LongOpenHashSet())
         );
-        entry.results.addLast(new RedfileResult(result.data(), Math.max(result.totalSamples(), 1), result.tickMillis()));
+        entry.results.addLast(new RedfileResult(result.data()));
         tileRenderTrie = null;
     }
 
@@ -123,7 +122,12 @@ public class RedfileResultManager {
     private void renderLines(MatrixStack stack, Vector3i camInt, Frustum frustum) {
         boolean[] anyFound = {false};
 
-        var color = Color.GRAY;// Color.getColor(RubixMod.CONFIG.redfileOptions.selectionColor(), Color.GRAY);
+        Color color;
+        try {
+            color = Color.decode("#" + RubixMod.CONFIG.redfileOptions.selectionColor());
+        } catch (NumberFormatException ignored) {
+            color = Color.GRAY;
+        }
         int r = color.getRed();
         int g = color.getRed();
         int b = color.getRed();
@@ -151,11 +155,11 @@ public class RedfileResultManager {
             var worldEntry = results.get(world.getRegistryKey());
             if (worldEntry == null || worldEntry.solo == null) return null;
             var soloed = worldEntry.solo;
-            long samples = worldEntry.selected.stream()
+            var summer = new MoreMath.MeanVarAcc();
+            worldEntry.selected.stream()
                 .filter(worldEntry::checkLayer)
-                .mapToLong(soloed.data::get)
-                .sum();
-            sumOfSelected = soloed.getInterval(samples);
+                .forEach(key -> summer.add(soloed.get(key)));
+            sumOfSelected = MoreMath.clampZero(summer.finish().middleInterval(0.05));
         }
         return sumOfSelected;
     }
@@ -225,9 +229,10 @@ public class RedfileResultManager {
         Map<Long, Float> amounts = new Long2FloatOpenHashMap();
         worldEntry.streamResults()
             .filter(RedfileResult::isActive)
-            .forEach(display -> display.data.forEach((blockPosLong, sampleCount) -> {
+            .forEach(display -> display.data.forEach((blockPosLong, packed) -> {
                 if (!worldEntry.checkLayer(blockPosLong)) return;
-                float logNanos = (float) Math.log(sampleCount * display.sampleMillis) * (1f / (float) Math.log(10)) + 6f;
+
+                float logNanos = (float) Math.log(MoreMath.MeanAndVar.unpack(packed).mean()) * (1f / (float) Math.log(10)) + 6f;
                 amounts.merge(blockPosLong, logNanos, Math::max);
             }));
         Map<Long, Integer> colors = new Long2IntOpenHashMap();
@@ -447,37 +452,20 @@ public class RedfileResultManager {
 
     public static final class RedfileResult {
         private final Map<Long, Long> data;
-        private final long totalSamples;
-        private final double sampleMillis;
-        private final double tickMillis;
         private boolean active = true;
 
-        private RedfileResult(Map<Long, Long> data, long totalSamples, double tickMillis) {
+        private RedfileResult(Map<Long, Long> data) {
             this.data = new Long2LongOpenHashMap(data);
-            this.totalSamples = totalSamples;
-            this.sampleMillis = tickMillis / totalSamples;
-            this.tickMillis = tickMillis;
         }
 
-        public double get(long longBlockPos) {
-            return data.get(longBlockPos) * sampleMillis;
+        public MoreMath.MeanAndVar get(long longBlockPos) {
+            var x = data.get(longBlockPos);
+            return x == null ? null : MoreMath.MeanAndVar.unpack(x);
         }
 
         public ResultTile getTile(long blockPosLong) {
             var entry = data.get(blockPosLong);
-            return entry == null ? null : new ResultTile(BlockPos.fromLong(blockPosLong), entry, this);
-        }
-
-        public double getSampleMillis() {
-            return sampleMillis;
-        }
-
-        public double getTickMillis() {
-            return tickMillis;
-        }
-
-        public long getTotalSamples() {
-            return totalSamples;
+            return entry == null ? null : new ResultTile(BlockPos.fromLong(blockPosLong), MoreMath.MeanAndVar.unpack(entry), this);
         }
 
         public boolean isActive() {
@@ -488,19 +476,15 @@ public class RedfileResultManager {
             this.active = active;
         }
 
-        public ConfidenceInterval getInterval(long samples) {
-            var res = MoreMath.longWilsonInterval(totalSamples, samples, 0.95);
-            return new ConfidenceInterval(res.getLowerBound() * tickMillis, res.getUpperBound() * tickMillis, res.getConfidenceLevel());
-        }
     }
 
-    public record ResultTile(BlockPos pos, long samples, RedfileResult master) {
+    public record ResultTile(BlockPos pos, MoreMath.MeanAndVar meanAndVar, RedfileResult master) {
         public ConfidenceInterval getInterval() {
-            return master.getInterval(samples);
+            return MoreMath.clampZero(meanAndVar.middleInterval(RubixMod.CONFIG.redfileOptions.alpha()));
         }
 
         public double estimate() {
-            return samples * master.getSampleMillis();
+            return meanAndVar.mean();
         }
     }
 

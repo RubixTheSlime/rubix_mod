@@ -9,7 +9,7 @@ import net.minecraft.util.math.BlockPos;
 public class ModClientCommands {
 
     public static void init() {
-        if (EnabledMods.REDFILE) ClientCommandRegistrationCallback.EVENT.register(RedfiledCommand::register);
+        if (EnabledMods.REDFILE) ClientCommandRegistrationCallback.EVENT.register(RedfilecCommand::register);
         if (EnabledMods.GAY_GRASS_VIDEO) ClientCommandRegistrationCallback.EVENT.register(GayGrassCommand::register);
     }
 

@@ -39,7 +39,7 @@ public class Sampler {
             if (current == null) continue;
             var list = world == null ? defaultList : instances.computeIfAbsent(world.getRegistryKey(), x -> new ConcurrentLinkedDeque<>());
             for (var instance : list) {
-                if (instance.getFilter().test(current)) instance.getCollector().inc(current);
+                instance.inc(current);
             }
         }
     }

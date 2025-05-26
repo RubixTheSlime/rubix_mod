@@ -46,16 +46,16 @@ public class RedfileManager {
 
     public static boolean tryStart(
         BlockBox box,
-        long length,
-        RedfileTimeUnit unit,
-        RedfileInstance.DetailEnum detail,
+        RedfileEndCondition.Builder runEndCondition,
+        RedfileEndCondition.Builder trialEndCondition,
+        DataCollector.Builder collectorBuilder,
         boolean doLoad,
         boolean doSprint,
         ServerCommandSource source
     ) {
         return INSTANCES
             .computeIfAbsent(source.getWorld().getRegistryKey(), x -> new ArrayList<>())
-            .add(RedfileInstance.start(box, length, unit, detail, doLoad, doSprint, source));
+            .add(RedfileInstance.start(box, runEndCondition, trialEndCondition, collectorBuilder, doLoad, doSprint, source));
     }
 
     public static void enterAndTickWorld(ServerWorld world) {

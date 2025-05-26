@@ -1,6 +1,9 @@
 package io.github.rubixtheslime.rubix.util;
 
+import io.github.rubixtheslime.rubix.redfile.RedfileSummarizer;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
+import org.apache.commons.math3.stat.interval.ConfidenceInterval;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 
@@ -13,6 +16,7 @@ public class Util {
     }
 
     public static @NotNull String formatTime(double millis) {
+        if (millis < 0) return "-" + formatTime(-millis);
         if (millis == 0) return "0s";
         double scaled;
         String unit;
@@ -40,4 +44,24 @@ public class Util {
         else if (scaled < 100d) accuracy = "%.2f%s";
         return String.format(accuracy, scaled, unit);
     }
+
+    public static @NotNull String formatTimeDelta(double millis) {
+        return (millis > 0 ? "+" : millis == 0 ? "±" : "-") + formatTime(Math.abs(millis));
+    }
+
+    public static @NotNull String formatTime(double millis, boolean isDelta) {
+        return isDelta ? formatTimeDelta(millis) : formatTime(millis);
+    }
+
+    public static @NotNull Text formatTimeInterval(RedfileSummarizer.CompareMode rangeMode, ConfidenceInterval interval, boolean confidence, boolean isDelta) {
+        var lower = formatTime(interval.getLowerBound(), isDelta);
+        var upper = formatTime(interval.getUpperBound(), isDelta);
+        double log = Math.log10(1 - interval.getConfidenceLevel());
+        int digits = Math.max(0, -1 - (int) Math.floor(log + 4 * Math.ulp(log)));
+        var conf = "%%.%df".formatted(digits).formatted(interval.getConfidenceLevel() * 100);
+        var key = "rubix.redfile." + rangeMode.asString();
+        if (confidence) key += "_confidence";
+        return Text.translatable(key, lower, upper, conf);
+    }
+
 }

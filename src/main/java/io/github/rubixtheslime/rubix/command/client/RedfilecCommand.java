@@ -10,7 +10,6 @@ import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
 import io.github.rubixtheslime.rubix.redfile.client.RedfileResultManager;
 import io.github.rubixtheslime.rubix.util.SetOperation;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.BlockStateArgument;
@@ -20,16 +19,13 @@ import net.minecraft.util.math.BlockBox;
 import net.minecraft.world.World;
 
 import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
 
 
-public class RedfiledCommand {
+public class RedfilecCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
-        dispatcher.register(literal("redfiled")
+        dispatcher.register(literal("redfilec")
             .then(literal("debug")
                 .then(literal("empty")
                     .executes(ofManager(RedfileResultManager::addEmpty))
@@ -90,15 +86,15 @@ public class RedfiledCommand {
                     .then(argument("from", BlockPosArgumentType.blockPos())
                         .then(argument("to", BlockPosArgumentType.blockPos())
                             .then(argument("blockstate", BlockStateArgumentType.blockState(registryAccess))
-                                .executes(RedfiledCommand::applySetOp)
+                                .executes(RedfilecCommand::applySetOp)
                             )
-                            .executes(RedfiledCommand::applySetOp)
+                            .executes(RedfilecCommand::applySetOp)
                         )
                     )
                     .then(argument("blockstate", BlockStateArgumentType.blockState(registryAccess))
-                        .executes(RedfiledCommand::applySetOp)
+                        .executes(RedfilecCommand::applySetOp)
                     )
-                    .executes(RedfiledCommand::applySetOp)
+                    .executes(RedfilecCommand::applySetOp)
                 )
                 .then(literal("run")
                     .then(argument("index", IntegerArgumentType.integer())

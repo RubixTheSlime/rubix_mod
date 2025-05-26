@@ -32,6 +32,9 @@ public class RubixConfigModel {
         @RangeConstraint(min = 0, max = 1)
         public float xray = 0.3f;
         public boolean xrayEnabled = true;
+        @RangeConstraint(min = 0, max = .3)
+        public float alpha = 0.05f;
+        public boolean displayConfidenceHud = false;
         @Hook public String selectionColor = "808080";
 
         @Hook public ColorMapMode colorMapMode = ColorMapMode.RGB_GRADIENT;
