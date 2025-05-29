@@ -210,9 +210,12 @@ public abstract class FlagBuffer {
         private Picture advance() {
             try {
                 while (queue.size() < QUEUE_SIZE) {
-                    var pic = frameGrab.getNativeFrameWithMetadata();
-                    if (pic == null) break;
-                    queue.put(pic.getTimestamp(), pic.getPicture());
+                    var picWithMetadata = frameGrab.getNativeFrameWithMetadata();
+                    if (picWithMetadata == null) break;
+                    var pic1 = picWithMetadata.getPicture();
+                    var pic2 = pic1.createCompatible();
+                    pic2.copyFrom(pic1);
+                    queue.put(picWithMetadata.getTimestamp(), pic2);
                 }
             } catch (IOException ignored) {
             }
