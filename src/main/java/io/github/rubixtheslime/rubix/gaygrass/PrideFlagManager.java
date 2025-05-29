@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.RubixMod;
+import io.github.rubixtheslime.rubix.client.RubixModClient;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
@@ -23,6 +24,7 @@ import java.util.stream.Stream;
 public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGetter> {
     private final ResourceManager resourceManager;
     private ColorGetter colorGetter;
+    private long biomeSeed = 0;
     private final Random random = new Xoroshiro128PlusPlusRandom(0);
 //    private long time = 0;
 
@@ -123,11 +125,12 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
 
     @Override
     protected void apply(ColorGetter prepared, ResourceManager manager, Profiler profiler) {
+        prepared.setBiomeSeed(biomeSeed);
         this.colorGetter = prepared;
-        this.invalidateCaches();
     }
 
     public void setBiomeSeed(long seed) {
+        biomeSeed = seed;
         this.colorGetter.setBiomeSeed(seed);
         this.invalidateCaches();
     }

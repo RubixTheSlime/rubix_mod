@@ -9,6 +9,7 @@
     "scale": "perexp",
     "opacity": 0.85,
     "density": 1,
+    "rotate_damp": 1,
     "paprika": 0
   },
   {

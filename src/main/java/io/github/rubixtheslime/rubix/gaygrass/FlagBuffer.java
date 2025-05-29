@@ -4,6 +4,8 @@ import com.github.weisj.jsvg.SVGDocument;
 import io.github.rubixtheslime.rubix.RubixMod;
 import it.unimi.dsi.fastutil.doubles.Double2ObjectRBTreeMap;
 import net.minecraft.util.Identifier;
+import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
+import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 import org.jcodec.api.FrameGrab;
 import org.jcodec.api.JCodecException;
 import org.jcodec.api.PictureWithMetadata;

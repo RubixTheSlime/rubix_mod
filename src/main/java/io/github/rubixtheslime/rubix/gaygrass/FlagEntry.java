@@ -18,6 +18,7 @@ public final class FlagEntry {
     public static Key<Double> MIN_SIZE = ofSimple(Double.class, "min_size");
     public static Key<Double> MAX_SIZE = ofSimple(Double.class, "max_size");
     public static Key<Double> OPACITY = ofSimple(Double.class, "opacity");
+    public static Key<Double> ROTATION_DAMP = ofSimple(Double.class, "rotate_damp");
     public static Key<Long> PAPRIKA = ofSimple(Long.class, "paprika");
     public static Key<Boolean> ANTIALIAS = ofSimple(Boolean.class, "antialias");
     public static Key<Boolean> MODIFY = ofSimple(Boolean.class, "modify");

@@ -2,10 +2,9 @@ package io.github.rubixtheslime.rubix.gaygrass;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.weisj.jsvg.SVGDocument;
-import io.github.rubixtheslime.rubix.RubixMod;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.noise.PerlinNoiseSampler;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 
@@ -22,16 +21,26 @@ public class FlagGetter {
     private long seed;
     private final int level;
     private final FlagGetter parent;
+    private final PerlinNoiseSampler[] perlinNoiseSamplers;
 
-    private FlagGetter(WeightedRandomGetter<Entry> entryGetter, double expectedCount, long paprika, int level, FlagGetter parent) {
+    private FlagGetter(WeightedRandomGetter<Entry> entryGetter, double expectedCount, long paprika, int level, FlagGetter parent, PerlinNoiseSampler[] perlinNoiseSamplers) {
         this.entryGetter = entryGetter;
         this.expectedCount = expectedCount;
         this.level = level;
         this.parent = parent;
         this.paprika = paprika;
+        this.perlinNoiseSamplers = perlinNoiseSamplers;
     }
 
     public void setBiomeSeed(long biomeSeed) {
+        setBiomeSeedInner(biomeSeed);
+        Random random = getRandom(seed);
+        for (int i = 0; i < perlinNoiseSamplers.length; i++) {
+            perlinNoiseSamplers[i] = new PerlinNoiseSampler(random);
+        }
+    }
+
+    private void setBiomeSeedInner(long biomeSeed) {
         Random random = getRandom(biomeSeed);
         random.skip(2);
         long levelFactor = random.nextLong() | 1;
@@ -39,11 +48,12 @@ public class FlagGetter {
         long newSeed = biomeSeed ^ (levelFactor * (long) level) ^ (paprikaFactor * paprika);
         if (newSeed == this.seed) return;
         this.seed = newSeed;
+        setBiomeSeed(biomeSeed);
         this.invalidateCache();
-        if (this.parent != null) this.parent.setBiomeSeed(biomeSeed);
+        if (this.parent != null) this.parent.setBiomeSeed(newSeed);
     }
 
-    public static FlagGetter of(List<Builder> builders, double expectedCount, FlagEntry globalEntry, int level, int cacheCount) {
+    public static FlagGetter of(List<Builder> builders, double expectedCount, FlagEntry globalEntry, PerlinNoiseSampler[] samplers, int level, int cacheCount) {
         Map<Entry, Double> map = new Reference2DoubleOpenHashMap<>(builders.size());
         builders.forEach(builder -> builder.splitInto(map, level));
         builders.removeIf(builder -> builder.weight <= 0);
@@ -52,10 +62,10 @@ public class FlagGetter {
         double splitExpectedCount = expectedCount * splitWeight / (splitWeight + remainingWeight);
         double remainingExpectedCount = expectedCount - splitExpectedCount;
         var entryGetter = WeightedRandomGetter.of(map, Comparator.comparing(a -> a.name));
-        var parent = builders.isEmpty() ? null : of(builders, remainingExpectedCount * 4, globalEntry, level + 1, 64);
+        var parent = builders.isEmpty() ? null : of(builders, remainingExpectedCount * 4, globalEntry, samplers, level + 1, 64);
         long paprika = globalEntry.get(FlagEntry.PAPRIKA);
-        if (cacheCount == 0) return new FlagGetter(entryGetter, splitExpectedCount, paprika, level, parent);
-        return new Cached(entryGetter, splitExpectedCount, paprika, level, parent, cacheCount);
+        if (cacheCount == 0) return new FlagGetter(entryGetter, splitExpectedCount, paprika, level, parent, samplers);
+        return new Cached(entryGetter, splitExpectedCount, paprika, level, parent, samplers, cacheCount);
     }
 
     private static Random getRandom(long seed) {
@@ -95,7 +105,7 @@ public class FlagGetter {
                     pmfValue *= expectedCount / ++successes;
                     luck -= pmfValue;
                     Entry base = this.entryGetter.get(random);
-                    var buffer = base.makeRandom(random, checkX, checkZ);
+                    var buffer = base.makeRandom(random, this, checkX, checkZ);
                     if (buffer.intersects(rect)) {
                         newBuffers.addLast(buffer);
                     }
@@ -116,11 +126,20 @@ public class FlagGetter {
         if (parent != null) parent.invalidateCaches();
     }
 
+    private double getDoublePerlin(double x, double y, int index) {
+        return getPerlin(x, y, index) + getPerlin(x + 0.5, y + 0.5, index + 1);
+    }
+
+    private double getPerlin(double x, double y, int index) {
+        var sampler = perlinNoiseSamplers[index];
+        return sampler == null ? 0 : sampler.sample(x, 0, y);
+    }
+
     public static class Cached extends FlagGetter {
         private final Cache<Long, List<FlagInstance>> cache;
 
-        private Cached(WeightedRandomGetter<Entry> flagGetter, double chance, long worldSeed, int level, FlagGetter parent, int size) {
-            super(flagGetter, chance, worldSeed, level, parent);
+        private Cached(WeightedRandomGetter<Entry> flagGetter, double chance, long worldSeed, int level, FlagGetter parent, PerlinNoiseSampler[] samplers, int size) {
+            super(flagGetter, chance, worldSeed, level, parent, samplers);
             cache = Caffeine.newBuilder()
                 .maximumSize(size)
                 .build();
@@ -142,6 +161,7 @@ public class FlagGetter {
         private final AffineTransform baseTransform;
         private final FlagEntry flagEntry;
         private final Identifier name;
+        private final double rotationDamp;
         public final Scale scale;
         private double minRadiusScaled;
         private double maxRadiusScaled;
@@ -150,6 +170,7 @@ public class FlagGetter {
         public Builder(FlagBuffer flagBuffer, AffineTransform baseTransform, FlagEntry flagEntry, Scale scale, Identifier name) {
             this.flagBuffer = flagBuffer;
             this.baseTransform = baseTransform;
+            this.rotationDamp = flagEntry.get(FlagEntry.ROTATION_DAMP);
             this.minRadiusScaled = scale.inv(flagEntry.get(FlagEntry.MIN_SIZE) * 0.5);
             this.maxRadiusScaled = scale.inv(flagEntry.get(FlagEntry.MAX_SIZE) * 0.5);
             this.scale = scale;
@@ -184,12 +205,12 @@ public class FlagGetter {
 
             if (splitPoint < minRadiusScaled) return;
             if (splitPoint > maxRadiusScaled) {
-                entries.put(new Entry(this, minRadiusScaled, maxRadiusScaled, level), weight);
+                entries.put(new Entry(this, minRadiusScaled, maxRadiusScaled, level, rotationDamp), weight);
                 weight = 0;
                 return;
             }
             double splitWeight = weight * (splitPoint - minRadiusScaled) / (maxRadiusScaled - minRadiusScaled);
-            entries.put(new Entry(this, minRadiusScaled, splitPoint, level), splitWeight);
+            entries.put(new Entry(this, minRadiusScaled, splitPoint, level, rotationDamp), splitWeight);
             this.minRadiusScaled = splitPoint;
             this.weight -= splitWeight;
         }
@@ -233,9 +254,10 @@ public class FlagGetter {
         private final double opacity;
         private final Object antialiasKey;
         private final int level;
+        private final double rotationDamp;
         private final Identifier name;
 
-        private Entry(Builder builder, double minRadiusScaled, double maxRadiusScaled, int level) {
+        private Entry(Builder builder, double minRadiusScaled, double maxRadiusScaled, int level, double rotationDamp) {
             this.flagBuffer = builder.flagBuffer;
             this.baseTransform = builder.baseTransform;
             this.opacity = builder.flagEntry.get(FlagEntry.OPACITY);
@@ -243,14 +265,19 @@ public class FlagGetter {
             this.level = level;
             this.name = builder.name;
             this.minRadiusScaled = minRadiusScaled;
+            this.rotationDamp = rotationDamp;
             this.rangeRadiusScaled = maxRadiusScaled - minRadiusScaled;
             this.scale = builder.scale;
         }
 
-        public FlagInstance makeRandom(Random random, long tileX, long tileZ) {
+        public FlagInstance makeRandom(Random random, FlagGetter getter, long tileX, long tileZ) {
             double translateX = (random.nextDouble() + tileX) * (1 << level);
             double translateZ = (random.nextDouble() + tileZ) * (1 << level);
-            double rotation = random.nextDouble() * Math.PI * 2;
+            double perlinX = translateX / rotationDamp;
+            double perlinZ = translateZ / rotationDamp;
+            double rotationX = getter.getDoublePerlin(perlinX, perlinZ, 0);
+            double rotationZ = getter.getDoublePerlin(perlinX, perlinZ, 2);
+            double rotation = rotationX == 0 && rotationZ == 0 ? 0 : Math.atan2(rotationZ, rotationX);
             double radius = scale.apply(random.nextDouble() * rangeRadiusScaled + minRadiusScaled);
             return make(translateX, translateZ, rotation, radius);
         }

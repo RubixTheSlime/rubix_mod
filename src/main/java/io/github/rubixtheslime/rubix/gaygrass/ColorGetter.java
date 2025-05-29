@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.rubixtheslime.rubix.EnabledMods;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.noise.PerlinNoiseSampler;
 
 import java.awt.image.BufferedImage;
 import java.util.*;
@@ -43,7 +44,8 @@ public abstract class ColorGetter {
         }
         double avgArea = FlagGetter.Builder.avgArea(flagBuilders);
         double expectedCount = globalEntry.get(FlagEntry.DENSITY) * DOUBLE_BASE_LEVEL / avgArea;
-        var flagGetter = FlagGetter.of(flagBuilders, expectedCount, globalEntry, BASE_LEVEL_INDEX, EnabledMods.GAY_GRASS_VIDEO ? 64 : 0);
+        PerlinNoiseSampler[] samplers = new PerlinNoiseSampler[4];
+        var flagGetter = FlagGetter.of(flagBuilders, expectedCount, globalEntry, samplers, BASE_LEVEL_INDEX, EnabledMods.GAY_GRASS_VIDEO ? 64 : 0);
         return new Actual(flagGetter, map);
     }
 
