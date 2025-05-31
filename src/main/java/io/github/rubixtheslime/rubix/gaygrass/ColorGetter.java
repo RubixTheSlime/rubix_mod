@@ -29,21 +29,23 @@ public abstract class ColorGetter {
     public abstract void invalidateCaches();
     public abstract void invalidateTileCache();
 
+    public abstract double getRotate(double x, double y, double damp);
+
     public static ColorGetter ofEmpty() {
         return new Empty();
     }
 
-    public static ColorGetter of(List<FlagGetter.Builder> flagBuilders, FlagEntry globalEntry) {
+    public static ColorGetter of(List<FlagGetter.Builder> flagBuilders, JsonFlagEntry globalEntry) {
         if (flagBuilders.isEmpty()) return ofEmpty();
         Map<Identifier, FlagBuffer.Animated> map = new Object2ObjectOpenHashMap<>();
         for (var builder : flagBuilders) {
-            var animated = builder.getBuffer().asAnimated();
-            if (animated != null) {
-                map.put(builder.getBuffer().getIdentifier(), animated);
+            var data = builder.flagData;
+            if (data.buffer instanceof FlagBuffer.Animated animated) {
+                map.put(data.identifier, animated);
             }
         }
         double avgArea = FlagGetter.Builder.avgArea(flagBuilders);
-        double expectedCount = globalEntry.get(FlagEntry.DENSITY) * DOUBLE_BASE_LEVEL / avgArea;
+        double expectedCount = globalEntry.get(JsonFlagEntry.DENSITY) * DOUBLE_BASE_LEVEL / avgArea;
         PerlinNoiseSampler[] samplers = new PerlinNoiseSampler[4];
         var flagGetter = FlagGetter.of(flagBuilders, expectedCount, globalEntry, samplers, BASE_LEVEL_INDEX, EnabledMods.GAY_GRASS_VIDEO ? 64 : 0);
         return new Actual(flagGetter, map);
@@ -86,6 +88,11 @@ public abstract class ColorGetter {
 
         @Override
         public void invalidateTileCache() {
+        }
+
+        @Override
+        public double getRotate(double x, double y, double damp) {
+            return 0;
         }
 
         @Override
@@ -156,6 +163,11 @@ public abstract class ColorGetter {
         @Override
         public void invalidateTileCache() {
             tileImageCache.invalidateAll();
+        }
+
+        @Override
+        public double getRotate(double x, double y, double damp) {
+            return flagGetter.getPerlinRotate(x, y, damp);
         }
 
         @Override

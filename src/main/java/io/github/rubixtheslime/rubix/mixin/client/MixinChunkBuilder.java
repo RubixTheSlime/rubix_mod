@@ -38,7 +38,9 @@ public class MixinChunkBuilder implements IMixinChunkBuilder {
         @Unique
         void setDynColorData(ChunkBuilder.Buffers buffers, BuiltBuffer builtBuffer) {
             if (!EnabledMods.GAY_GRASS_VIDEO) return;
-            ((IMixinChunkBuilder.Buffers) buffers).rubix$setDynColorData(((IMixinBuiltBuffer) builtBuffer).rubix$getDynColor());
+            var ibuffers = ((IMixinChunkBuilder.Buffers) buffers);
+            ibuffers.rubix$setDynColorData(((IMixinBuiltBuffer) builtBuffer).rubix$getDynColor());
+            ibuffers.rubix$updateDynColorData();
         }
 
         @ModifyExpressionValue(method = "method_68535", at = @At(value = "FIELD", remap = false, target = "Lcom/mojang/blaze3d/buffers/BufferUsage;STATIC_WRITE:Lcom/mojang/blaze3d/buffers/BufferUsage;"))

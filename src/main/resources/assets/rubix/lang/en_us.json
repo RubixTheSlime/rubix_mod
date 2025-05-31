@@ -90,6 +90,10 @@
 
   "text.config.rubix.option.gayGrassOptions.colorAll": "Apply to all colorable blocks",
   "text.config.rubix.option.gayGrassOptions.colorAll.tooltip": "Whether to also affect blocks that use color\nbut are normally unaffected by biome color, such\nas birch/spruce leaves and redstone dust. This is\nimplicitly enabled if video support is enabled.",
+  "text.config.rubix.option.gayGrassOptions.threadedRebuild": "Threaded rebuild (video)",
+  "text.config.rubix.option.gayGrassOptions.matchRotate": "Auto align camera",
+  "text.config.rubix.option.gayGrassOptions.rotateDamp": "Rotation damp level for auto-align",
+  "text.config.rubix.option.gayGrassOptions.rotateSpeed": "Rotation speed (0-1)",
 
   "category.rubix.debug": "More Debug",
   "key.rubix.debug_0": "Debug value 0",

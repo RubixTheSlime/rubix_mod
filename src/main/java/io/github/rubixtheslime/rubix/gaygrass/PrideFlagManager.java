@@ -2,9 +2,7 @@ package io.github.rubixtheslime.rubix.gaygrass;
 
 import com.google.gson.JsonArray;
 import io.github.rubixtheslime.rubix.EnabledMods;
-import io.github.rubixtheslime.rubix.RDebug;
 import io.github.rubixtheslime.rubix.RubixMod;
-import io.github.rubixtheslime.rubix.client.RubixModClient;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
@@ -52,11 +50,15 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
         return colorGetter.getColor(x, z);
     }
 
+    public double getRotate(double x, double z, double damp) {
+        return colorGetter.getRotate(x, z, damp);
+    }
+
     @Override
     protected ColorGetter prepare(ResourceManager manager, Profiler profiler) {
-        var flags = new HashMap<String, FlagEntry>();
-        var modifiers = new HashMap<String, FlagEntry>();
-        var globalEntry = new FlagEntry();
+        var flags = new HashMap<String, JsonFlagEntry>();
+        var modifiers = new HashMap<String, JsonFlagEntry>();
+        var globalEntry = new JsonFlagEntry();
 
         resourceManager.streamResourcePacks().forEach(pack -> {
             var namespaces = pack.getNamespaces(ResourceType.CLIENT_RESOURCES);
@@ -75,12 +77,12 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
                     }
                     for (var element : array) {
                         var object = element.getAsJsonObject();
-                        var flagEntry = FlagEntry.of(object, namespace);
+                        var flagEntry = JsonFlagEntry.of(object, namespace);
                         if (flagEntry == null) continue;
-                        var id = flagEntry.get(FlagEntry.ID);
-                        if (id.equals(FlagEntry.GLOBAL_KEY)) {
+                        var id = flagEntry.get(JsonFlagEntry.ID);
+                        if (id.equals(JsonFlagEntry.GLOBAL_KEY)) {
                             globalEntry.merge(flagEntry);
-                        } else if (flagEntry.getOr(FlagEntry.MODIFY, false)) {
+                        } else if (flagEntry.getOr(JsonFlagEntry.MODIFY, false)) {
                             if (modifiers.containsKey(id)) {
                                 modifiers.get(id).merge(flagEntry);
                             } else {
@@ -99,22 +101,23 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
             var idStr = entry.getKey();
 
             var mods = modifiers.get(idStr);
-            var flagEntry = FlagEntry.collect(globalEntry, entry.getValue(), mods);
-            if (flagEntry.get(FlagEntry.WEIGHT) <= 0) continue;
+            var flagEntry = JsonFlagEntry.collect(globalEntry, entry.getValue(), mods);
+            if (flagEntry.get(JsonFlagEntry.WEIGHT) <= 0) continue;
 
             var id = Identifier.of(idStr);
-            var resourceId = Identifier.of(flagEntry.get(FlagEntry.RESOURCE));
+            var resourceId = Identifier.of(flagEntry.get(JsonFlagEntry.RESOURCE));
             try {
-                var getter = FlagBufferGetter.of(flagEntry.get(FlagEntry.FORMAT));
+                var getter = FlagBuffer.Getter.of(flagEntry.get(JsonFlagEntry.FORMAT));
 
                 var resourcePath = getter.toResourcePath(resourceId);
                 var resource = manager.getResource(resourcePath);
                 if (resource.isEmpty()) throw new RuntimeException("failed to find resource");
 
-                var flagBuffer = getter.build(resource.get(), id);
+                var flagBuffer = getter.build(resource.get(), id, flagEntry);
                 if (flagBuffer == null) throw new RuntimeException("null buffer object");
+                var flagData = FlagData.of(flagEntry, flagBuffer, id);
 
-                var flagGetterBuilder = FlagGetter.Builder.of(flagBuffer, flagEntry, id);
+                var flagGetterBuilder = FlagGetter.Builder.of(flagData, flagEntry);
                 builders.addLast(flagGetterBuilder);
             } catch (RuntimeException e) {
                 RubixMod.LOGGER.error("an error occurred while preparing {} (resource id {}): {}", id, resourceId, e.getLocalizedMessage());

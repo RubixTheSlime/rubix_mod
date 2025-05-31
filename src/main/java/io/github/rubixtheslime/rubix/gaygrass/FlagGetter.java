@@ -3,7 +3,7 @@ package io.github.rubixtheslime.rubix.gaygrass;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.math.ColorHelper;
 import net.minecraft.util.math.noise.PerlinNoiseSampler;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
@@ -53,7 +53,7 @@ public class FlagGetter {
         if (this.parent != null) this.parent.setBiomeSeed(newSeed);
     }
 
-    public static FlagGetter of(List<Builder> builders, double expectedCount, FlagEntry globalEntry, PerlinNoiseSampler[] samplers, int level, int cacheCount) {
+    public static FlagGetter of(List<Builder> builders, double expectedCount, JsonFlagEntry globalEntry, PerlinNoiseSampler[] samplers, int level, int cacheCount) {
         Map<Entry, Double> map = new Reference2DoubleOpenHashMap<>(builders.size());
         builders.forEach(builder -> builder.splitInto(map, level));
         builders.removeIf(builder -> builder.weight <= 0);
@@ -61,9 +61,9 @@ public class FlagGetter {
         double remainingWeight = builders.stream().mapToDouble(builder -> builder.weight).sum();
         double splitExpectedCount = expectedCount * splitWeight / (splitWeight + remainingWeight);
         double remainingExpectedCount = expectedCount - splitExpectedCount;
-        var entryGetter = WeightedRandomGetter.of(map, Comparator.comparing(a -> a.name));
+        var entryGetter = WeightedRandomGetter.of(map, Comparator.comparing(a -> a.flagData.identifier));
         var parent = builders.isEmpty() ? null : of(builders, remainingExpectedCount * 4, globalEntry, samplers, level + 1, 64);
-        long paprika = globalEntry.get(FlagEntry.PAPRIKA);
+        long paprika = globalEntry.get(JsonFlagEntry.PAPRIKA);
         if (cacheCount == 0) return new FlagGetter(entryGetter, splitExpectedCount, paprika, level, parent, samplers);
         return new Cached(entryGetter, splitExpectedCount, paprika, level, parent, samplers, cacheCount);
     }
@@ -126,6 +126,14 @@ public class FlagGetter {
         if (parent != null) parent.invalidateCaches();
     }
 
+    public double getPerlinRotate(double x, double y, double damp) {
+        x /= damp;
+        y /= damp;
+        double rotationX = getDoublePerlin(x, y, 0);
+        double rotationY = getDoublePerlin(x, y, 2);
+        return rotationX == 0 && rotationY == 0 ? 0 : Math.atan2(rotationY, rotationX);
+    }
+
     private double getDoublePerlin(double x, double y, int index) {
         return getPerlin(x, y, index) + getPerlin(x + 0.5, y + 0.5, index + 1);
     }
@@ -157,26 +165,18 @@ public class FlagGetter {
     }
 
     public static class Builder {
-        private final FlagBuffer flagBuffer;
+        public final FlagData flagData;
         private final AffineTransform baseTransform;
-        private final FlagEntry flagEntry;
-        private final Identifier name;
-        private final double rotationDamp;
-        public final Scale scale;
         private double minRadiusScaled;
         private double maxRadiusScaled;
         private double weight;
 
-        public Builder(FlagBuffer flagBuffer, AffineTransform baseTransform, FlagEntry flagEntry, Scale scale, Identifier name) {
-            this.flagBuffer = flagBuffer;
+        public Builder(FlagData flagData, AffineTransform baseTransform, JsonFlagEntry flagEntry) {
+            this.flagData = flagData;
             this.baseTransform = baseTransform;
-            this.rotationDamp = flagEntry.get(FlagEntry.ROTATION_DAMP);
-            this.minRadiusScaled = scale.inv(flagEntry.get(FlagEntry.MIN_SIZE) * 0.5);
-            this.maxRadiusScaled = scale.inv(flagEntry.get(FlagEntry.MAX_SIZE) * 0.5);
-            this.scale = scale;
-            this.weight = flagEntry.get(FlagEntry.WEIGHT);
-            this.name = name;
-            this.flagEntry = flagEntry;
+            this.minRadiusScaled = flagData.scale.inv(flagEntry.get(JsonFlagEntry.MIN_SIZE) * 0.5);
+            this.maxRadiusScaled = flagData.scale.inv(flagEntry.get(JsonFlagEntry.MAX_SIZE) * 0.5);
+            this.weight = flagEntry.get(JsonFlagEntry.WEIGHT);
         }
 
         public static double avgArea(Collection<Builder> builders) {
@@ -201,28 +201,28 @@ public class FlagGetter {
         }
 
         private void splitInto(Map<Entry, Double> entries, int level) {
-            double splitPoint = scale.inv(1L << level);
+            double splitPoint = flagData.scale.inv(1L << level);
 
             if (splitPoint < minRadiusScaled) return;
             if (splitPoint > maxRadiusScaled) {
-                entries.put(new Entry(this, minRadiusScaled, maxRadiusScaled, level, rotationDamp), weight);
+                entries.put(new Entry(this, minRadiusScaled, maxRadiusScaled, level), weight);
                 weight = 0;
                 return;
             }
             double splitWeight = weight * (splitPoint - minRadiusScaled) / (maxRadiusScaled - minRadiusScaled);
-            entries.put(new Entry(this, minRadiusScaled, splitPoint, level, rotationDamp), splitWeight);
+            entries.put(new Entry(this, minRadiusScaled, splitPoint, level), splitWeight);
             this.minRadiusScaled = splitPoint;
             this.weight -= splitWeight;
         }
 
         public double avgArea() {
-            double w = flagBuffer.width();
-            double h = flagBuffer.height();
+            double w = flagData.buffer.width();
+            double h = flagData.buffer.height();
             // integrate over radius & multiply by area per square radius. assumes the svg is a full rectangle
             // `* 2` is to divide squared diagonal to get square radius, but is then halved by the constant in the
             // integral of `exp(2*x)`
             // also divide by the range to make it an average
-            return (scale.integralOfSquared(minRadiusScaled, maxRadiusScaled)) * w * h * 4
+            return (flagData.scale.integralOfSquared(minRadiusScaled, maxRadiusScaled)) * w * h * 4
                 / ((w * w + h * h) * (maxRadiusScaled - minRadiusScaled));
         }
 
@@ -230,64 +230,58 @@ public class FlagGetter {
             return weight;
         }
 
-        public static Builder of(FlagBuffer flagBuffer, FlagEntry flagEntry, Identifier identifier) throws RuntimeException {
+        public static Builder of(FlagData flagData, JsonFlagEntry flagEntry) throws RuntimeException {
+            var flagBuffer = flagData.buffer;
+            var identifier = flagData.identifier;
             float scale = 2f / (float) Math.hypot(flagBuffer.width(), flagBuffer.height());
             var transform = AffineTransform.getScaleInstance(scale, scale);
             transform.translate(-flagBuffer.width() / 2, -flagBuffer.height() / 2);
-            var scaleImpl = Scale.of(flagEntry.get(FlagEntry.SCALE));
-            if (scaleImpl == null) throw new RuntimeException("invalid scale name for %s: %s".formatted(identifier, flagEntry.get(FlagEntry.SCALE)));
+            var scaleImpl = Scale.of(flagEntry.get(JsonFlagEntry.SCALE));
+            if (scaleImpl == null) throw new RuntimeException("invalid scale name for %s: %s".formatted(identifier, flagEntry.get(JsonFlagEntry.SCALE)));
 
-            return new Builder(flagBuffer, transform, flagEntry, scaleImpl, identifier);
+            return new Builder(flagData, transform, flagEntry);
         }
 
-        public FlagBuffer getBuffer() {
-            return flagBuffer;
+        public FlagData getData() {
+            return flagData;
         }
     }
 
     private static class Entry {
-        private final FlagBuffer flagBuffer;
+        private final FlagData flagData;
         private final AffineTransform baseTransform;
         private final double minRadiusScaled;
         private final double rangeRadiusScaled;
-        private final Scale scale;
-        private final double opacity;
-        private final Object antialiasKey;
         private final int level;
-        private final double rotationDamp;
-        private final Identifier name;
 
-        private Entry(Builder builder, double minRadiusScaled, double maxRadiusScaled, int level, double rotationDamp) {
-            this.flagBuffer = builder.flagBuffer;
+        private Entry(Builder builder, double minRadiusScaled, double maxRadiusScaled, int level) {
+            this.flagData = builder.flagData;
             this.baseTransform = builder.baseTransform;
-            this.opacity = builder.flagEntry.get(FlagEntry.OPACITY);
-            this.antialiasKey = builder.flagEntry.get(FlagEntry.ANTIALIAS) ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF;
             this.level = level;
-            this.name = builder.name;
             this.minRadiusScaled = minRadiusScaled;
-            this.rotationDamp = rotationDamp;
             this.rangeRadiusScaled = maxRadiusScaled - minRadiusScaled;
-            this.scale = builder.scale;
         }
 
         public FlagInstance makeRandom(Random random, FlagGetter getter, long tileX, long tileZ) {
             double translateX = (random.nextDouble() + tileX) * (1 << level);
             double translateZ = (random.nextDouble() + tileZ) * (1 << level);
-            double perlinX = translateX / rotationDamp;
-            double perlinZ = translateZ / rotationDamp;
-            double rotationX = getter.getDoublePerlin(perlinX, perlinZ, 0);
-            double rotationZ = getter.getDoublePerlin(perlinX, perlinZ, 2);
-            double rotation = rotationX == 0 && rotationZ == 0 ? 0 : Math.atan2(rotationZ, rotationX);
-            double radius = scale.apply(random.nextDouble() * rangeRadiusScaled + minRadiusScaled);
-            return make(translateX, translateZ, rotation, radius);
+            double radius = flagData.scale.apply(random.nextDouble() * rangeRadiusScaled + minRadiusScaled);
+            double rotation = getter.getPerlinRotate(translateX, translateZ, flagData.rotationDamp);
+            Color color;
+            if (flagData.randomColorAlpha > 0) {
+                color = new Color(ColorHelper.withAlpha(Math.min(255, (int) (flagData.randomColorAlpha * 255)), Color.HSBtoRGB((float) random.nextDouble(), 1, 1)), true);
+            } else {
+                color = null;
+            }
+            return make(translateX, translateZ, rotation, radius, color);
         }
 
-        public FlagInstance make(double x, double z, double rotation, double radius) {
+        public FlagInstance make(double x, double z, double rotation, double radius, Color color) {
             var transform = AffineTransform.getTranslateInstance(x, z);
             transform.rotate(rotation);
             transform.scale(radius, radius);
             transform.concatenate(baseTransform);
-            return new FlagInstance(flagBuffer, transform, radius, opacity, antialiasKey);
+            return new FlagInstance(flagData, transform, radius, color);
         }
 
     }

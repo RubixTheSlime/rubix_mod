@@ -67,6 +67,10 @@ public class RubixConfigModel {
     public static class GayGrassOptions {
         @RestartRequired
         public boolean colorAll = false;
+        public boolean threadedRebuild = false;
+        public boolean matchRotate = false;
+        public float rotateDamp = 0.01f;
+        public float rotateSpeed = 5;
     }
 
     public static class DebugOptions {

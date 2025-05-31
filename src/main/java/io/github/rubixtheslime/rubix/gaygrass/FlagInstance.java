@@ -1,33 +1,32 @@
 package io.github.rubixtheslime.rubix.gaygrass;
 
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 public class FlagInstance {
-    private final FlagBuffer flagBuffer;
+    public final FlagData flagData;
     private final AffineTransform mainTransform;
     private final AffineTransform invTransform;
     private final double radius;
     private final Rectangle2D bounds;
     private final Rectangle2D docBounds;
-    private final double opacity;
-    private final Object antialiasKey;
+    private final Color shade;
 
-    public FlagInstance(FlagBuffer flagBuffer, AffineTransform mainTransform, double radius, double opacity, Object antialiasKey) {
-        this.flagBuffer = flagBuffer;
+    public FlagInstance(FlagData flagData, AffineTransform mainTransform, double radius, Color shade) {
+        this.flagData = flagData;
         this.mainTransform = mainTransform;
+        this.shade = shade;
         try {
             this.invTransform = mainTransform.createInverse();
         } catch (NoninvertibleTransformException e) {
             throw new RuntimeException(e);
         }
         this.radius = radius;
-        this.opacity = opacity;
-        this.antialiasKey = antialiasKey;
 
-        this.docBounds = new Rectangle2D.Double(0, 0, flagBuffer.width(), flagBuffer.height());
+        this.docBounds = new Rectangle2D.Double(0, 0, flagData.buffer.width(), flagData.buffer.height());
         this.bounds = getTransformedRect(mainTransform, docBounds);
     }
 
@@ -70,7 +69,11 @@ public class FlagInstance {
     public void applyTo(int x, int z, BufferedImage image, AnimationKey animationKey) {
         var transform = AffineTransform.getTranslateInstance(-x, -z);
         transform.concatenate(mainTransform);
-        flagBuffer.draw(image, transform, antialiasKey, (float) opacity, animationKey);
+        flagData.buffer.draw(image, transform, animationKey, this);
+    }
+
+    public Color getShade() {
+        return shade;
     }
 
     public enum AnimationKey {

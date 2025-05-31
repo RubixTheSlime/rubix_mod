@@ -1,41 +1,96 @@
 package io.github.rubixtheslime.rubix.gaygrass;
 
 import com.github.weisj.jsvg.SVGDocument;
-import io.github.rubixtheslime.rubix.RubixMod;
+import com.github.weisj.jsvg.parser.LoaderContext;
+import com.github.weisj.jsvg.parser.SVGLoader;
+import io.github.rubixtheslime.rubix.EnabledMods;
 import it.unimi.dsi.fastutil.doubles.Double2ObjectRBTreeMap;
+import net.minecraft.resource.Resource;
+import net.minecraft.resource.ResourceFinder;
 import net.minecraft.util.Identifier;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 import org.jcodec.api.FrameGrab;
 import org.jcodec.api.JCodecException;
-import org.jcodec.api.PictureWithMetadata;
+import org.jcodec.common.io.ByteBufferSeekableByteChannel;
 import org.jcodec.common.model.Picture;
+import org.jcodec.containers.mp4.demuxer.AbstractMP4DemuxerTrack;
 import org.jcodec.scale.AWTUtil;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 public abstract class FlagBuffer {
-    private final Identifier identifier;
 
-    protected FlagBuffer(Identifier identifier) {
-        this.identifier = identifier;
+    static final Getter SVG_GETTER = new Getter("svg", true) {
+        @Override
+        public FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException {
+            try {
+                var stream = resource.getInputStream();
+                var loader = new SVGLoader();
+                var svgDocument = loader.load(stream, null, LoaderContext.createDefault());
+                stream.close();
+                if (svgDocument == null) {
+                    throw new RuntimeException("null svg document");
+                }
+                return new Vector(identifier, flagEntry, svgDocument);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    };
+    static final Getter PNG_GETTER = new Getter("png", false) {
+        @Override
+        public FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException {
+            try {
+                InputStream stream = resource.getInputStream();
+                var image = ImageIO.read(stream);
+                if (image == null) {
+                    throw new RuntimeException("null png image");
+                }
+                return new Pixel(identifier, flagEntry, image);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    };
+    static final Getter MP4_GETTER = new Getter("mp4", false) {
+        @Override
+        public FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException {
+            try {
+                InputStream stream = resource.getInputStream();
+                var byteBuffer = ByteBuffer.wrap(stream.readAllBytes());
+                var seekableChannel = ByteBufferSeekableByteChannel.readFromByteBuffer(byteBuffer);
+
+                var frameGrab = FrameGrab.createFrameGrab(seekableChannel);
+                var track = (AbstractMP4DemuxerTrack)frameGrab.getVideoTrack();
+
+                return new Video(identifier, flagEntry, track.getFrameCount(), (int) track.getTimescale(), frameGrab);
+            } catch (IOException | JCodecException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    };
+
+    protected FlagBuffer(Identifier identifier, JsonFlagEntry flagEntry) {
     }
 
-    public abstract void draw(BufferedImage image, AffineTransform transform, Object antialiasKey, float opacity, FlagInstance.AnimationKey animationKey);
+    public abstract void draw(BufferedImage image, AffineTransform transform, FlagInstance.AnimationKey animationKey, FlagInstance instance);
     public abstract double height();
     public abstract double width();
+    public abstract Rectangle2D bounds();
 
-    public Identifier getIdentifier() {
-        return identifier;
-    }
-
-    public Animated asAnimated() {
-        return null;
+    public void postDraw(Graphics2D g, FlagInstance instance, float opacity) {
+        if (instance.flagData.randomColorAlpha > 0) {
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+            g.setPaint(instance.getShade());
+            g.fill(bounds());
+        }
     }
 
     public interface Animated {
@@ -48,21 +103,22 @@ public abstract class FlagBuffer {
     public static class Vector extends FlagBuffer {
         private final SVGDocument svgDocument;
 
-        public Vector(Identifier identifier, SVGDocument svgDocument) {
-            super(identifier);
+        public Vector(Identifier identifier, JsonFlagEntry flagEntry, SVGDocument svgDocument) {
+            super(identifier, flagEntry);
             this.svgDocument = svgDocument;
         }
 
         @Override
-        public void draw(BufferedImage image, AffineTransform transform, Object antialiasKey, float opacity, FlagInstance.AnimationKey animationKey) {
+        public void draw(BufferedImage image, AffineTransform transform, FlagInstance.AnimationKey animationKey, FlagInstance instance) {
             BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
             Graphics2D g = tmpImage.createGraphics();
             g.transform(transform);
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialiasKey);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, instance.flagData.antialiasKey);
             svgDocument.render(null, g);
+            postDraw(g, instance, 1);
             g.dispose();
             g = image.createGraphics();
-            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, instance.flagData.opacity));
             g.drawImage(tmpImage, 0, 0, null);
             g.dispose();
         }
@@ -76,23 +132,30 @@ public abstract class FlagBuffer {
         public double width() {
             return svgDocument.size().width;
         }
+
+        @Override
+        public Rectangle2D bounds() {
+            var size = svgDocument.size();
+            return new Rectangle2D.Double(0, 0, size.width, size.height);
+        }
     }
 
     public static class Pixel extends FlagBuffer {
         private final BufferedImage bufferedImage;
 
-        protected Pixel(Identifier identifier, BufferedImage bufferedImage) {
-            super(identifier);
+        protected Pixel(Identifier identifier, JsonFlagEntry flagEntry, BufferedImage bufferedImage) {
+            super(identifier, flagEntry);
             this.bufferedImage = bufferedImage;
         }
 
         @Override
-        public void draw(BufferedImage image, AffineTransform transform, Object antialiasKey, float opacity, FlagInstance.AnimationKey animationKey) {
+        public void draw(BufferedImage image, AffineTransform transform, FlagInstance.AnimationKey animationKey, FlagInstance instance) {
             Graphics2D g = image.createGraphics();
             g.transform(transform);
             // pixel format does not allow antialiasing
-            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, instance.flagData.opacity));
             g.drawImage(bufferedImage, 0, 0, null);
+            postDraw(g, instance, instance.flagData.opacity);
             g.dispose();
         }
 
@@ -104,6 +167,11 @@ public abstract class FlagBuffer {
         @Override
         public double width() {
             return bufferedImage.getWidth();
+        }
+
+        @Override
+        public Rectangle2D bounds() {
+            return bufferedImage.getRaster().getBounds();
         }
     }
 
@@ -123,8 +191,8 @@ public abstract class FlagBuffer {
         private boolean paused;
         private BufferedImage bufferedImage = null;
 
-        public Video(Identifier identifier, long frameCount, int timescale, FrameGrab frameGrab) {
-            super(identifier);
+        public Video(Identifier identifier, JsonFlagEntry flagEntry, long frameCount, int timescale, FrameGrab frameGrab) {
+            super(identifier, flagEntry);
             this.frameCount = frameCount;
             this.timescale = timescale;
             this.frameGrab = frameGrab;
@@ -133,19 +201,20 @@ public abstract class FlagBuffer {
         }
 
         @Override
-        public void draw(BufferedImage image, AffineTransform transform, Object antialiasKey, float opacity, FlagInstance.AnimationKey animationKey) {
+        public void draw(BufferedImage image, AffineTransform transform, FlagInstance.AnimationKey animationKey, FlagInstance instance) {
             if (animationKey == FlagInstance.AnimationKey.ACTUAL) {
                 if (bufferedImage == null) return;
                 Graphics2D g = image.createGraphics();
                 g.transform(transform);
                 // pixel format does not allow antialiasing
-                g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+                g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, instance.flagData.opacity));
                 g.drawImage(bufferedImage, 0, 0, null);
+                postDraw(g, instance, instance.flagData.opacity);
                 g.dispose();
             } else {
                 Graphics2D g = image.createGraphics();
                 g.transform(transform);
-                g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+                g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, instance.flagData.opacity));
                 g.setPaint(animationKey == FlagInstance.AnimationKey.BLACK ? Color.BLACK : Color.WHITE);
                 g.fill(bounds);
                 g.dispose();
@@ -160,6 +229,11 @@ public abstract class FlagBuffer {
         @Override
         public double width() {
             return bounds.getWidth();
+        }
+
+        @Override
+        public Rectangle2D bounds() {
+            return bounds;
         }
 
         @Override
@@ -225,9 +299,29 @@ public abstract class FlagBuffer {
             return res == null ? null : res.getValue();
         }
 
-        @Override
-        public Animated asAnimated() {
-            return this;
+    }
+
+    public abstract static class Getter {
+        private final ResourceFinder finder;
+        private final boolean canAntialias;
+
+        Getter(String extension, boolean canAntialias) {
+            finder = new ResourceFinder("flags", "." + extension);
+            this.canAntialias = canAntialias;
         }
+
+        public static Getter of(String format) throws RuntimeException {
+            if (Objects.equals(format, "vector")) return SVG_GETTER;
+            if (Objects.equals(format, "pixel")) return PNG_GETTER;
+            if (Objects.equals(format, "video") && EnabledMods.GAY_GRASS_VIDEO) return MP4_GETTER;
+            throw new RuntimeException("invalid format name: %s".formatted(format));
+        }
+
+        public Identifier toResourcePath(Identifier identifier) {
+            return finder.toResourcePath(identifier);
+        }
+
+        public abstract FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException;
+
     }
 }

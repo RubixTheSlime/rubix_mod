@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public final class FlagEntry {
+public final class JsonFlagEntry {
     private static final Map<String, Key<?>> SIMPLE_KEYS = new HashMap<>();
     public static String GLOBAL_KEY = "*";
     public static Key<Double> WEIGHT = ofSimple(Double.class, "weight");
@@ -19,6 +19,7 @@ public final class FlagEntry {
     public static Key<Double> MAX_SIZE = ofSimple(Double.class, "max_size");
     public static Key<Double> OPACITY = ofSimple(Double.class, "opacity");
     public static Key<Double> ROTATION_DAMP = ofSimple(Double.class, "rotate_damp");
+    public static Key<Double> RANDOM_COLOR_ALPHA = ofSimple(Double.class, "random_color");
     public static Key<Long> PAPRIKA = ofSimple(Long.class, "paprika");
     public static Key<Boolean> ANTIALIAS = ofSimple(Boolean.class, "antialias");
     public static Key<Boolean> MODIFY = ofSimple(Boolean.class, "modify");
@@ -36,16 +37,16 @@ public final class FlagEntry {
 
     private final Map<Key<?>, Object> entries = new Reference2ObjectOpenHashMap<>();
 
-    public static FlagEntry collect(FlagEntry global, FlagEntry entry, FlagEntry mods) {
-        var res = new FlagEntry();
+    public static JsonFlagEntry collect(JsonFlagEntry global, JsonFlagEntry entry, JsonFlagEntry mods) {
+        var res = new JsonFlagEntry();
         res.entries.putAll(global.entries);
         res.entries.putAll(entry.entries);
         if (mods != null) res.entries.putAll(mods.entries);
         return res;
     }
 
-    public static FlagEntry of(JsonObject object, String namespace) {
-        var res = new FlagEntry();
+    public static JsonFlagEntry of(JsonObject object, String namespace) {
+        var res = new JsonFlagEntry();
         for (var entry : object.entrySet()) {
             if (!entry.getValue().isJsonPrimitive()) continue;
             var value = entry.getValue().getAsJsonPrimitive();
@@ -79,7 +80,7 @@ public final class FlagEntry {
         return res;
     }
 
-    public void merge(FlagEntry other) {
+    public void merge(JsonFlagEntry other) {
         this.entries.putAll(other.entries);
     }
 

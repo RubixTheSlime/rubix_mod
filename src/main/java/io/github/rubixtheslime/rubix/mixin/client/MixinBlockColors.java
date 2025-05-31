@@ -6,6 +6,7 @@ import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
 import io.github.rubixtheslime.rubix.util.MoreColor;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.color.block.BlockColorProvider;
 import net.minecraft.client.color.block.BlockColors;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,7 +16,7 @@ public class MixinBlockColors {
 
     @WrapMethod(method = "registerColorProvider")
     void registerColorProvider(BlockColorProvider provider, Block[] blocks, Operation<Void> original) {
-        if (!EnabledMods.GAY_GRASS_ALL) {
+        if (!EnabledMods.GAY_GRASS_ALL || blocks[0] == Blocks.WATER) {
             original.call(provider, blocks);
             return;
         }

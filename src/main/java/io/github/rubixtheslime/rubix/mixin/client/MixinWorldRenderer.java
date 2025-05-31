@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.rubixtheslime.rubix.EnabledMods;
+import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
 import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinChunkBuilder;
@@ -66,21 +67,24 @@ public abstract class MixinWorldRenderer {
         CallbackInfo ci
     ) {
         if (!EnabledMods.GAY_GRASS_VIDEO) return;
-        for (var builtChunk : builtChunks) {
-            var buffers = builtChunk.getBuffers(renderLayer);
-            if (buffers == null) continue;
-            ((IMixinChunkBuilder.Buffers)buffers).rubix$updateDynColorDataFuture();
+        if (RubixMod.CONFIG.gayGrassOptions.threadedRebuild()) {
+            var list = builtChunks.stream()
+                .map(builtChunk -> builtChunk.getBuffers(renderLayer))
+                .filter(Objects::nonNull)
+                .map(buffers -> ((IMixinChunkBuilder.Buffers) buffers).rubix$updateDynColorDataFuture())
+                .toList();
+            try {
+                Util.combine(list).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            for (var builtChunk : builtChunks) {
+                var buffers = builtChunk.getBuffers(renderLayer);
+                if (buffers == null) continue;
+                ((IMixinChunkBuilder.Buffers) buffers).rubix$updateDynColorDataFuture();
+            }
         }
-//        var list = builtChunks.stream()
-//            .map(builtChunk -> builtChunk.getBuffers(renderLayer))
-//            .filter(Objects::nonNull)
-//            .map(buffers -> ((IMixinChunkBuilder.Buffers)buffers).rubix$updateDynColorDataFuture())
-//            .toList();
-//        try {
-//            Util.combine(list).get();
-//        } catch (InterruptedException | ExecutionException e) {
-//            throw new RuntimeException(e);
-//        }
     }
 
 
