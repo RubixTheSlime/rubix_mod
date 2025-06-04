@@ -18,6 +18,8 @@ public class RubixConfigModel {
         @RestartRequired
         public boolean enableRedfile = false;
         @RestartRequired
+        public boolean enableSuppressionBlocks = false;
+        @RestartRequired
         public boolean enableDebug = false;
 
         @SectionHeader("danger_zone")

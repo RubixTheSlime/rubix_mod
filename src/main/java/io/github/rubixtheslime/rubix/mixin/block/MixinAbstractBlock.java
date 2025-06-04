@@ -1,5 +1,7 @@
-package io.github.rubixtheslime.rubix.mixin;
+package io.github.rubixtheslime.rubix.mixin.block;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -25,6 +27,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import static io.github.rubixtheslime.rubix.redfile.RedfileTrackers.*;
+
 @Mixin(AbstractBlock.class)
 public abstract class MixinAbstractBlock {
 
@@ -36,41 +40,52 @@ public abstract class MixinAbstractBlock {
 
         @Inject(method = "neighborUpdate", at = @At("HEAD"))
         public void neighborUpdateEnter(World world, BlockPos pos, Block sourceBlock, WireOrientation wireOrientation, boolean notify, CallbackInfo ci) {
-            RedfileManager.enter(pos);
+            NEIGHBOR_UPDATE.enter(pos);
         }
 
         // neighbor update exit handled implicitly by other things exiting
 
         @Inject(method = "getStateForNeighborUpdate", at = @At("HEAD"))
         public void stateChangeUpdateEnter(WorldView world, ScheduledTickView tickView, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, Random random, CallbackInfoReturnable<BlockState> cir) {
-            RedfileManager.enter(pos);
+            STATE_CHANGE_UPDATE.enter(pos);
         }
 
-        @Inject(method = "updateNeighbors(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;II)V", at = @At("TAIL"))
-        public void stateChangeUpdateReturn(WorldAccess world, BlockPos pos, int flags, int maxUpdateDepth, CallbackInfo ci) {
-            RedfileManager.enter(pos);
+        @WrapMethod(method = "updateNeighbors(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;II)V")
+        public void stateChangeWrap(WorldAccess world, BlockPos pos, int flags, int maxUpdateDepth, Operation<Void> original) {
+            var current = RedfileManager.getCurrentRaw();
+            original.call(world, pos, flags, maxUpdateDepth);
+            RedfileManager.enter(current);
         }
 
-        @Inject(method = "randomTick", at = @At("HEAD"))
-        public void randomTickEnter(ServerWorld world, BlockPos pos, Random random, CallbackInfo ci) {
-            RedfileManager.enter(pos);
+        @WrapMethod(method = "prepare(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;II)V")
+        public void prepareWrap(WorldAccess world, BlockPos pos, int flags, int maxUpdateDepth, Operation<Void> original) {
+            var current = RedfileManager.getCurrentRaw();
+            PREPARE_BLOCK.enterLeaf(pos);
+            original.call(world, pos, flags, maxUpdateDepth);
+            RedfileManager.enter(current);
         }
 
-        @Inject(method = "randomTick", at = @At("TAIL"))
-        public void randomTickExit(ServerWorld world, BlockPos pos, Random random, CallbackInfo ci) {
+        @WrapMethod(method = "randomTick")
+        public void randomTickWrap(ServerWorld world, BlockPos pos, Random random, Operation<Void> original) {
+            RANDOM_TICK.enter(pos);
+            original.call(world, pos, random);
             RedfileManager.exit();
         }
 
-        // handled by packets, need to exit for neighbor updatesr even if we don't enter. entering is
-        // complicated for these, but also likely negligible
-        @Inject(method = "onUse", at = @At("HEAD"))
-        public void onUseExit(World world, PlayerEntity player, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
+        @WrapMethod(method = "onUse")
+        public ActionResult onUseWrap(World world, PlayerEntity player, BlockHitResult hit, Operation<ActionResult> original) {
+            RedfileManager.enter(hit);
+            var res = original.call(world, player, hit);
             RedfileManager.exit();
+            return res;
         }
 
-        @Inject(method = "onUseWithItem", at = @At("HEAD"))
-        public void onUseWithItemExit(ItemStack stack, World world, PlayerEntity player, Hand hand, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
+        @WrapMethod(method = "onUseWithItem")
+        public ActionResult onUseWithItemWrap(ItemStack stack, World world, PlayerEntity player, Hand hand, BlockHitResult hit, Operation<ActionResult> original) {
+            RedfileManager.enter(hit);
+            var res = original.call(stack, world, player, hand, hit);
             RedfileManager.exit();
+            return res;
         }
     }
 }

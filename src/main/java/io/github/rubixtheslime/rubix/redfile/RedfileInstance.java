@@ -101,8 +101,8 @@ public class RedfileInstance {
         if (runEndCondition.tick()) stop();
     }
     
-    public void inc(BlockPos blockPos) {
-        if (runEndCondition != null && filter.test(blockPos)) collector.inc(blockPos);
+    public void inc(RedfileTag tag, BlockPos blockPos) {
+        if (runEndCondition != null && filter.test(tag, blockPos)) collector.inc(tag, blockPos);
     }
 
 }

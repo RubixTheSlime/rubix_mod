@@ -1,14 +1,12 @@
 package io.github.rubixtheslime.rubix.redfile;
 
-import net.minecraft.entity.Entity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.BlockEvent;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.BlockEntityTickInvoker;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -21,7 +19,8 @@ public class RedfileManager {
     private static final ReentrantLock RUN_LOCK = new ReentrantLock();
     private static final ReentrantLock STOP_LOCK = new ReentrantLock();
     private static final Map<RegistryKey<World>, List<RedfileInstance>> INSTANCES = new HashMap<>();
-    private static volatile @NotNull Object tracked = RedfileTracked.EMPTY;
+    private static @NotNull Object trackedRaw = RedfileTracker.EMPTY;
+    private static volatile @NotNull Object tracked = RedfileTracker.EMPTY;
     private static volatile ServerWorld currentWorld = null;
 
     public static ServerWorld getCurrentWorld() {
@@ -29,19 +28,32 @@ public class RedfileManager {
     }
 
     public static void enter(Object o) {
+        trackedRaw = o;
+        tracked = o;
+    }
+
+    public static void enterLeaf(Object o) {
         tracked = o;
     }
 
     public static void exit() {
-        tracked = RedfileTracked.EMPTY;
+        enter(RedfileTracker.EMPTY);
+    }
+
+    public static void exitLeaf() {
+        enterLeaf(RedfileTracker.EMPTY);
     }
 
     public static boolean running() {
         return RUN_LOCK.isLocked() || STOP_LOCK.isLocked();
     }
 
-    public static BlockPos getCurrent() {
-        return ((RedfileTracked)tracked).rubix$getPosForRedfile();
+    public static Object getCurrentRaw() {
+        return trackedRaw;
+    }
+
+    public static RedfileTracker getCurrent() {
+        return ((RedfileTracker) tracked);
     }
 
     public static boolean tryStart(

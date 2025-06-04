@@ -1,6 +1,5 @@
-package io.github.rubixtheslime.rubix.client;
+package io.github.rubixtheslime.rubix;
 
-import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.block.ModBlocks;
 import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;

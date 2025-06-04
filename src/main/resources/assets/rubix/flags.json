@@ -10,6 +10,7 @@
     "opacity": 0.85,
     "density": 1,
     "rotate_damp": 1,
+    "random_color": 0,
     "paprika": 0
   },
   {
@@ -154,7 +155,7 @@
   },
   {
     "id": "straight_ally",
-    "weight": 5
+    "weight": 0.1
   },
   {
     "id": "tomboy"

@@ -34,12 +34,14 @@ public class Sampler {
             LockSupport.parkNanos(10_000);
 //            if (instanceCount == 0) continue;
             var world = RedfileManager.getCurrentWorld();
-            var current = RedfileManager.getCurrent();
+            var tracked = RedfileManager.getCurrent();
+            var pos = tracked.getPosForRedfile();
+            var tag = tracked.getTagForRedfile();
             ++totalSamples;
-            if (current == null) continue;
+            if (pos == null) continue;
             var list = world == null ? defaultList : instances.computeIfAbsent(world.getRegistryKey(), x -> new ConcurrentLinkedDeque<>());
             for (var instance : list) {
-                instance.inc(current);
+                instance.inc(tag, pos);
             }
         }
     }

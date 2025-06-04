@@ -73,6 +73,7 @@ public class RedfileCommand {
 
         PartSupply<RedfileSummarizer> summarizerFunction;
         PartSupply<Double> alphaFunction;
+        PartSupply<Boolean> splitTagsFunction;
 
         private RedfileSummarizer getSummarizer(CommandContext<ServerCommandSource> context) {
             return summarizerFunction.get(this, context);
@@ -82,13 +83,18 @@ public class RedfileCommand {
             return alphaFunction.get(this, context);
         }
 
+        private boolean getSplit(CommandContext<ServerCommandSource> context) {
+            return splitTagsFunction.get(this, context);
+        }
+
         Suppliers() {
             boxFunction = (s, context) -> null;
-            collectorFunction = (s, context) -> DataCollector.summary(s.getSummarizer(context));
+            collectorFunction = (s, context) -> DataCollector.summary(s.getSummarizer(context), s.getSplit(context));
             runEndConditionFunction = (s, context) -> RedfileEndCondition.trialCountCondition(30);
             trialEndConditionFunction = (s, context) -> RedfileEndCondition.tickCondition(100);
             summarizerFunction = (s, context) -> RedfileSummarizer.average(s.getAlpha(context));
             alphaFunction = (s, context) -> 0.05;
+            splitTagsFunction = (s, context) -> false;
         }
 
         Suppliers(Suppliers suppliers) {
@@ -98,6 +104,7 @@ public class RedfileCommand {
             trialEndConditionFunction = suppliers.trialEndConditionFunction;
             summarizerFunction = suppliers.summarizerFunction;
             alphaFunction = suppliers.alphaFunction;
+            splitTagsFunction = suppliers.splitTagsFunction;
         }
 
         private Suppliers applied(Consumer<Suppliers> f) {
@@ -129,6 +136,10 @@ public class RedfileCommand {
             return applied(s -> s.alphaFunction = f);
         }
 
+        Suppliers withSplitTags(PartSupply<Boolean> f) {
+            return applied(s -> s.splitTagsFunction = f);
+        }
+
         private ArgumentBuilder<ServerCommandSource, ?> getRun() {
             return literal("run")
                 .executes(execute())
@@ -144,24 +155,43 @@ public class RedfileCommand {
         private ArgumentBuilder<ServerCommandSource, ?> addRunType(ArgumentBuilder<ServerCommandSource, ?> builder) {
             return builder
                 .executes(execute())
-                .then(addAlpha(literal("average")))
+                .then(addSplitTags(literal("average")))
                 .then(literal("compare")
                     .then(literal("control")
-                        .then(withSummarizer((s, context) ->
-                            RedfileSummarizer.setControl(StringArgumentType.getString(context, "cmp_name"))
-                        ).addRunEndCondition(argument("cmp_name", StringArgumentType.word())))
+                        .then(this
+                            .withSummarizer((s, context) ->
+                                RedfileSummarizer.setControl(StringArgumentType.getString(context, "cmp_name"))
+                            )
+                            .withSplitTags((s, context) -> true)
+                            .addRunEndCondition(argument("cmp_name", StringArgumentType.word()))
+                        )
                     )
                     .then(argument("cmp_mode", ModEnumType.CompareModeArgument.compareMode())
                         .then(withSummarizer((s, context) ->
                                 RedfileSummarizer.compare(ModEnumType.CompareModeArgument.getMode(context, "cmp_mode"), StringArgumentType.getString(context, "cmp_name"), s.getAlpha(context))
-                            ).addAlpha(argument("cmp_name", StringArgumentType.word()))
+                            ).addSplitTags(argument("cmp_name", StringArgumentType.word()))
                         )
                     )
                 )
-                .then(withRunType((s, context) -> DataCollector.heatMap()).addRunEndCondition(literal("heatmap")));
+                .then(literal("heatmap")
+                    .requires(ServerCommandSource::isExecutedByPlayer)
+                    .executes(withRunType((s, context) -> DataCollector.heatMap(s.getSplit(context))).execute())
+                    .then(withRunType((s, context) -> DataCollector.heatMap(s.getSplit(context)))
+                        .withSplitTags((s, context) -> BoolArgumentType.getBool(context, "split_tags"))
+                        .addRunEndCondition(argument("split_tags", BoolArgumentType.bool()))
+                    )
+                );
         }
 
         private static final String[] ALPHA_SUGGESTIONS = {"0.05", "0.3", "0.01", "0.001"};
+
+        private ArgumentBuilder<ServerCommandSource, ?> addSplitTags(ArgumentBuilder<ServerCommandSource, ?> builder) {
+            return builder
+                .executes(execute())
+                .then(withSplitTags((s, context) -> BoolArgumentType.getBool(context, "split_tags"))
+                    .addAlpha(argument("split_tags", BoolArgumentType.bool()))
+                );
+        }
 
         private ArgumentBuilder<ServerCommandSource, ?> addAlpha(ArgumentBuilder<ServerCommandSource, ?> builder) {
             return builder

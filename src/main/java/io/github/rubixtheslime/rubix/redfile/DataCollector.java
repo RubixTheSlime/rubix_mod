@@ -5,17 +5,22 @@ import io.github.rubixtheslime.rubix.network.RedfileResultPacket;
 import io.github.rubixtheslime.rubix.util.MoreMath;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 
 public interface DataCollector {
     void start(ServerWorld world);
-    void inc(BlockPos pos);
+    void inc(RedfileTag tag, BlockPos pos);
     void finish(ServerCommandSource source, ServerWorld world);
     void split(long trialSamples, double tickRate);
 
@@ -23,12 +28,12 @@ public interface DataCollector {
         DataCollector get();
     }
 
-    static Builder heatMap() {
+    static Builder heatMap(boolean splitTags) {
         return DetailedCollector::new;
     }
 
-    static Builder summary(RedfileSummarizer summarizer) {
-        return () -> new SummaryCollector(summarizer);
+    static Builder summary(RedfileSummarizer summarizer, boolean splitTags) {
+        return () -> new SummaryCollector(summarizer, splitTags);
     }
 
     class DetailedCollector implements DataCollector {
@@ -41,7 +46,7 @@ public interface DataCollector {
         }
 
         @Override
-        public void inc(BlockPos pos) {
+        public void inc(RedfileTag tag, BlockPos pos) {
             counts.merge(pos.asLong(), 1L, Long::sum);
         }
 
@@ -69,13 +74,15 @@ public interface DataCollector {
     }
 
     class SummaryCollector implements DataCollector {
-        private long count = 0;
         private int trialCount = 0;
-        private final MoreMath.MeanAndVar meanAndVar = new MoreMath.MeanAndVar();
+        private final Map<RedfileTag, Long> counts = new Reference2LongOpenHashMap<>();
+        private final Map<RedfileTag, MoreMath.MeanAndVar> data = new Reference2ObjectOpenHashMap<>();
         private final RedfileSummarizer summarizer;
+        private final boolean spiltTags;
 
-        public SummaryCollector(RedfileSummarizer summarizer) {
+        public SummaryCollector(RedfileSummarizer summarizer, boolean spiltTags) {
             this.summarizer = summarizer;
+            this.spiltTags = spiltTags;
         }
 
         @Override
@@ -83,8 +90,8 @@ public interface DataCollector {
         }
 
         @Override
-        public void inc(BlockPos pos) {
-            ++count;
+        public void inc(RedfileTag tag, BlockPos pos) {
+            counts.merge(tag, 1L, Long::sum);
         }
 
         @Override
@@ -93,17 +100,32 @@ public interface DataCollector {
                 source.sendFeedback(() -> Text.translatable("rubix.command.redfile.one_trial"), false);
                 return;
             }
-            meanAndVar.finishPredictive(trialCount);
-            summarizer.feedback(source, meanAndVar);
+            data.forEach((k, mv) -> mv.finishPredictive(trialCount));
+            var acc = new MoreMath.MeanVarAcc();
+            data.forEach((k, v) -> acc.add(v));
+            var allEntry = acc.finish();
+            if (spiltTags) {
+                Map<RedfileTag, MoreMath.MeanAndVar> finalData = new Reference2ObjectArrayMap<>(data.size());
+                finalData.put(RedfileTags.ALL, allEntry);
+                data.entrySet().stream()
+                    .sorted(Comparator.comparing(entry -> -entry.getValue().mean()))
+                    .forEach(entry -> finalData.put(entry.getKey(), entry.getValue()));
+                summarizer.feedback(source, finalData);
+            } else {
+                summarizer.feedback(source, Map.of(RedfileTags.ALL, allEntry));
+            }
         }
 
         @Override
         public void split(long trialSamples, double tickRate) {
-            double x = (double) count * tickRate / trialSamples;
             trialCount++;
-            meanAndVar.update(x, trialCount);
+            for (var entry : counts.entrySet()) {
+                double x = (double) entry.getValue() * tickRate / trialSamples;
+                data.computeIfAbsent(entry.getKey(), a -> new MoreMath.MeanAndVar())
+                    .update(x, trialCount);
+            }
 
-            count = 0;
+            counts.replaceAll((a, b) -> 0L);
         }
     }
 

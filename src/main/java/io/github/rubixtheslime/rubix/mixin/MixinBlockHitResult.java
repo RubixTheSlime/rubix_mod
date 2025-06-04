@@ -3,22 +3,23 @@ package io.github.rubixtheslime.rubix.mixin;
 import io.github.rubixtheslime.rubix.redfile.RedfileTag;
 import io.github.rubixtheslime.rubix.redfile.RedfileTags;
 import io.github.rubixtheslime.rubix.redfile.RedfileTracker;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.BlockEntityTickInvoker;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(BlockEntityTickInvoker.class)
-public interface MixinBlockEntityTickInvoker extends RedfileTracker {
-    @Shadow BlockPos getPos();
+@Mixin(BlockHitResult.class)
+public class MixinBlockHitResult implements RedfileTracker {
+    @Shadow @Final private BlockPos blockPos;
 
     @Override
-    default BlockPos getPosForRedfile() {
-        return getPos().toImmutable();
+    public BlockPos getPosForRedfile() {
+        return blockPos;
     }
 
     @Override
-    default RedfileTag getTagForRedfile() {
-        return RedfileTags.TILE_ENTITY_TICK;
+    public RedfileTag getTagForRedfile() {
+        return RedfileTags.BLOCK_INTERACT;
     }
 }

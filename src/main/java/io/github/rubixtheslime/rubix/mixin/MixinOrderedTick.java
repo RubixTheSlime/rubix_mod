@@ -3,16 +3,19 @@ package io.github.rubixtheslime.rubix.mixin;
 import io.github.rubixtheslime.rubix.redfile.RedfileTag;
 import io.github.rubixtheslime.rubix.redfile.RedfileTags;
 import io.github.rubixtheslime.rubix.redfile.RedfileTracker;
-import net.minecraft.server.world.BlockEvent;
+import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.tick.OrderedTick;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(BlockEvent.class)
-public class MixinBlockEvent implements RedfileTracker {
+@Mixin(OrderedTick.class)
+public abstract class MixinOrderedTick<T> implements RedfileTracker {
 
     @Shadow @Final private BlockPos pos;
+
+    @Shadow public T type;
 
     @Override
     public BlockPos getPosForRedfile() {
@@ -21,8 +24,6 @@ public class MixinBlockEvent implements RedfileTracker {
 
     @Override
     public RedfileTag getTagForRedfile() {
-        return RedfileTags.BLOCK_EVENT;
+        return type instanceof Block ? RedfileTags.TILE_TICK_BLOCK : RedfileTags.TILE_TICK_FLUID;
     }
-
-
 }

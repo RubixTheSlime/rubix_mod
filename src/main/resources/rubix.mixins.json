@@ -4,17 +4,22 @@
   "package": "io.github.rubixtheslime.rubix.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MixinAbstractBlock",
-    "MixinAbstractBlock$MixinAbstractBlockState",
     "MixinBlockEntityTickInvoker",
     "MixinBlockEvent",
+    "MixinBlockHitResult",
     "MixinBlockPos",
     "MixinEntity",
+    "MixinOrderedTick",
     "MixinServerChunkLoadingManager",
+    "MixinServerChunkLoadingManager$EntityTracker",
     "MixinServerTickManager",
     "MixinServerWorld",
     "MixinWorld",
-    "MixinWorldTickScheduler"
+    "MixinWorldTickScheduler",
+    "block.MixinAbstractBlock",
+    "block.MixinAbstractBlock$MixinAbstractBlockState",
+    "block.MixinPistonBlock",
+    "block.MixinRedstoneTorchBlock"
   ],
   "client": [
     "client.MixinBiomeColors",

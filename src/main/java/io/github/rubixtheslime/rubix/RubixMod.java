@@ -1,6 +1,8 @@
 package io.github.rubixtheslime.rubix;
 
+import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.command.ModCommands;
+import io.github.rubixtheslime.rubix.item.ModItems;
 import io.github.rubixtheslime.rubix.network.RedfileResultPacket;
 import io.wispforest.owo.network.OwoNetChannel;
 import net.fabricmc.api.ModInitializer;
@@ -17,6 +19,8 @@ public class RubixMod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModCommands.init();
+        ModBlocks.initialize();
+        ModItems.initialize();
         if (EnabledMods.REDFILE) RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileResultPacket.class);
     }
 }

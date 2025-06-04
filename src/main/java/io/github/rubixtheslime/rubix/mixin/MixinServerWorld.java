@@ -1,12 +1,11 @@
 package io.github.rubixtheslime.rubix.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
-import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
-import net.minecraft.fluid.Fluid;
 import net.minecraft.server.world.BlockEvent;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,27 +17,13 @@ import java.util.function.BooleanSupplier;
 @Mixin(value = ServerWorld.class)
 public abstract class MixinServerWorld {
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    public void tickHead(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
+    @WrapMethod(method = "tick")
+    public void tickHead(BooleanSupplier shouldKeepTicking, Operation<Void> original) {
         RedfileManager.enterAndTickWorld((ServerWorld) (Object) this);
-    }
-
-    @Inject(method = "tick", at = @At("TAIL"))
-    public void tickTail(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
+        original.call(shouldKeepTicking);
         RedfileManager.exitWorld();
     }
 
-    @Inject(method = "tickBlock", at = @At("HEAD"))
-    public void tickBlockEnter(BlockPos pos, Block block, CallbackInfo ci) {
-        RedfileManager.enter(pos);
-    }
-
-    @Inject(method = "tickFluid", at = @At("HEAD"))
-    public void tickFluidEnter(BlockPos pos, Fluid fluid, CallbackInfo ci) {
-        RedfileManager.enter(pos);
-    }
-
-    // tile tick exit handled by WorldTickScheduler
     // random ticks handled in AbstractBlockState
 
     @Inject(method = "processBlockEvent", at = @At("HEAD"))
@@ -64,7 +49,7 @@ public abstract class MixinServerWorld {
         RedfileManager.enter(passenger);
     }
 
-    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/EntityList;forEach(Ljava/util/function/Consumer;)V"))
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;tickBlockEntities()V"))
     public void tickEntitiesExit(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         RedfileManager.exit();
     }

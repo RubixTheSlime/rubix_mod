@@ -6,7 +6,7 @@ import net.minecraft.util.math.BlockPos;
 
 
 public interface TrialFilter {
-    boolean test(BlockPos pos);
+    boolean test(RedfileTag tag, BlockPos pos);
 
     final class BoxTrialFilter implements TrialFilter {
         private final BlockBox box;
@@ -16,14 +16,14 @@ public interface TrialFilter {
         }
 
         @Override
-        public boolean test(BlockPos pos) {
+        public boolean test(RedfileTag tag, BlockPos pos) {
             return box.contains(pos);
         }
     }
 
     final class TrivialTrialFilter implements TrialFilter {
         @Override
-        public boolean test(BlockPos pos) {
+        public boolean test(RedfileTag tag, BlockPos pos) {
             return true;
         }
     }
