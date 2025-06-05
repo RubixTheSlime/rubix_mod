@@ -5,6 +5,7 @@ accessible class net/minecraft/client/render/chunk/ChunkBuilder$Result
 accessible class net/minecraft/client/render/chunk/ChunkBuilder$Result
 accessible class net/minecraft/entity/Entity$QueuedCollisionCheck
 accessible class net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker
+accessible class net/minecraft/world/block/ChainRestrictedNeighborUpdater$Entry
 
 accessible field net/minecraft/client/render/Tessellator allocator Lnet/minecraft/client/util/BufferAllocator;
 accessible field net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker entity Lnet/minecraft/entity/Entity;

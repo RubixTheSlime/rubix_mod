@@ -85,6 +85,7 @@
   "text.config.rubix.option.enabledMods.enableRedfile": "Redfile",
   "text.config.rubix.option.enabledMods.enableGayGrass": "Gay Grass",
   "text.config.rubix.option.enabledMods.enableGayGrassVideo": "Gay Grass Video",
+  "text.config.rubix.option.enabledMods.enableSuppressionBlocks": "Suppression Blocks",
   "text.config.rubix.option.enabledMods.enableDebug": "More Debug",
   "text.config.rubix.option.enabledMods.enableGayGrassVideo.tooltip": "Side effects:\n\n - disables the majority of the Fabric block rendering API",
 
@@ -165,6 +166,7 @@
   "redfile.tag.rubix.prepare_block": "Prepare block (connect dust)",
   "redfile.tag.rubix.rail_power_search": "Search for power",
   "redfile.tag.rubix.random_tick": "Random tick",
+  "redfile.tag.rubix.set_block": "Set block state",
   "redfile.tag.rubix.state_change_update": "React to state change",
   "redfile.tag.rubix.tile_entity_tick": "Tick tile entity",
   "redfile.tag.rubix.tile_tick_block": "Tile tick (block)",

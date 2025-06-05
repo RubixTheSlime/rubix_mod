@@ -22,5 +22,6 @@ public class RubixMod implements ModInitializer {
         ModBlocks.initialize();
         ModItems.initialize();
         if (EnabledMods.REDFILE) RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileResultPacket.class);
+        LOGGER.info("lithium loaded: {}", EnabledMods.EX_LITHIUM);
     }
 }

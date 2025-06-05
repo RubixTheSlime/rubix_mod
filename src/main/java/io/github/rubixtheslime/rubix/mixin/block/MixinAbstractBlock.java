@@ -2,6 +2,8 @@ package io.github.rubixtheslime.rubix.mixin.block;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import io.github.rubixtheslime.rubix.EnabledMods;
+import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -41,20 +43,15 @@ public abstract class MixinAbstractBlock {
         @Inject(method = "neighborUpdate", at = @At("HEAD"))
         public void neighborUpdateEnter(World world, BlockPos pos, Block sourceBlock, WireOrientation wireOrientation, boolean notify, CallbackInfo ci) {
             NEIGHBOR_UPDATE.enter(pos);
+
         }
 
         // neighbor update exit handled implicitly by other things exiting
 
-        @Inject(method = "getStateForNeighborUpdate", at = @At("HEAD"))
-        public void stateChangeUpdateEnter(WorldView world, ScheduledTickView tickView, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, Random random, CallbackInfoReturnable<BlockState> cir) {
-            STATE_CHANGE_UPDATE.enter(pos);
-        }
-
         @WrapMethod(method = "updateNeighbors(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;II)V")
         public void stateChangeWrap(WorldAccess world, BlockPos pos, int flags, int maxUpdateDepth, Operation<Void> original) {
-            var current = RedfileManager.getCurrentRaw();
+            if (!world.isClient() && ModBlocks.STATE_CHANGE_SUPPRESS_BLOCK.isAround(() -> pos)) return;
             original.call(world, pos, flags, maxUpdateDepth);
-            RedfileManager.enter(current);
         }
 
         @WrapMethod(method = "prepare(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;II)V")
@@ -67,6 +64,7 @@ public abstract class MixinAbstractBlock {
 
         @WrapMethod(method = "randomTick")
         public void randomTickWrap(ServerWorld world, BlockPos pos, Random random, Operation<Void> original) {
+            if (ModBlocks.RANDOM_TICK_SUPPRESSION_BLOCK.isAround(() -> pos)) return;
             RANDOM_TICK.enter(pos);
             original.call(world, pos, random);
             RedfileManager.exit();

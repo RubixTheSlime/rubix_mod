@@ -37,12 +37,10 @@ public class ModBlocks {
     public static ArrayList<SuppressionBlock> SUPPRESSION_BLOCKS;
 
     public static void initialize() {
-        if (EnabledMods.SUPPRESSION_BLOCKS) {
-            for (SuppressionBlock block : SUPPRESSION_BLOCKS) {
-                ItemGroupEvents
-                    .modifyEntriesEvent(ItemGroups.OPERATOR)
-                    .register((itemGroup) -> itemGroup.add(block.asItem()));
-            }
+        for (SuppressionBlock block : SUPPRESSION_BLOCKS) {
+            ItemGroupEvents
+                .modifyEntriesEvent(ItemGroups.OPERATOR)
+                .register((itemGroup) -> itemGroup.add(block.asItem()));
         }
     }
 
@@ -52,7 +50,7 @@ public class ModBlocks {
                 .sounds(BlockSoundGroup.STONE)
                 .allowsSpawning(Blocks::never),
             path,
-            SuppressionBlock::new,
+            SuppressionBlock::of,
             true
         );
         if (SUPPRESSION_BLOCKS == null) {

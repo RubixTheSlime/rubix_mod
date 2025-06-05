@@ -1,4 +1,4 @@
 package io.github.rubixtheslime.rubix.imixin;
 
-public class IMixinWorldTickScheduler {
+public interface IMixinWorldTickScheduler {
 }

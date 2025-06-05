@@ -10,6 +10,7 @@ public class RubixConfigModel {
     @Nest public EnabledMods enabledMods = new EnabledMods();
     @Nest public RedfileOptions redfileOptions = new RedfileOptions();
     @Nest public GayGrassOptions gayGrassOptions = new GayGrassOptions();
+    @Nest public MiscOptions miscOptions = new MiscOptions();
     @Nest public DebugOptions debugOptions = new DebugOptions();
 
     public static class EnabledMods {
@@ -73,6 +74,10 @@ public class RubixConfigModel {
         public boolean matchRotate = false;
         public float rotateDamp = 0.01f;
         public float rotateSpeed = 5;
+    }
+
+    public static class MiscOptions {
+        public boolean forceSyncWorldThreads = false;
     }
 
     public static class DebugOptions {

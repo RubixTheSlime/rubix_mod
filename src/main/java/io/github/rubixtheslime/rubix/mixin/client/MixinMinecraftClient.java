@@ -1,7 +1,10 @@
 package io.github.rubixtheslime.rubix.mixin.client;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
+import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import io.github.rubixtheslime.rubix.redfile.client.RedfileResultManager;
 import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
@@ -26,6 +29,7 @@ public class MixinMinecraftClient implements IMixinMinecraftClient {
     @Shadow @Final private ReloadableResourceManagerImpl resourceManager;
 
     @Shadow @Nullable public ClientPlayerEntity player;
+    @Shadow @Nullable public ClientWorld world;
     @Unique
     private final RedfileResultManager redfileResultManager = new RedfileResultManager();
 
@@ -61,4 +65,12 @@ public class MixinMinecraftClient implements IMixinMinecraftClient {
             RubixModClient.prideFlagManager.setBiomeSeed(world.getBiomeAccess().seed);
         }
     }
+
+    @WrapMethod(method = "handleInputEvents")
+    void handleInputEventsWrap(Operation<Void> original) {
+        RedfileManager.lockWorld(this.world);
+        original.call();
+        RedfileManager.unlockWorld(this.world);
+    }
+
 }
