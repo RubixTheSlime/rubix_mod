@@ -54,21 +54,22 @@ public interface DataCollector {
         public void finish(ServerCommandSource source, ServerWorld world) {
             Map<Long, Long> data = new Long2LongOpenHashMap();
             for (var entry : stats.entrySet()) {
-                entry.getValue().finishPredictive(trialCount);
-                data.put(entry.getKey(), entry.getValue().pack());
+                var value = entry.getValue();
+                value.finishPredictive(trialCount);
+                data.put(entry.getKey(), value.pack());
             }
             RubixMod.RUBIX_MOD_CHANNEL.serverHandle(source.getPlayer()).send(new RedfileResultPacket(data));
         }
 
         @Override
         public void split(long trialSamples, double tickRate) {
-            var oldCounts = counts;
-            counts = new Long2LongOpenHashMap();
             trialCount++;
             double scale = tickRate / trialSamples;
-            for (var entry : oldCounts.entrySet()) {
-                var x = stats.computeIfAbsent(entry.getKey(), i -> new MoreMath.MeanAndVar());
-                x.update(entry.getValue() * scale, trialCount);
+            for (var entry : counts.entrySet()) {
+                var value = entry.getValue();
+                entry.setValue(0L);
+                var mv = stats.computeIfAbsent(entry.getKey(), i -> new MoreMath.MeanAndVar());
+                mv.update(value * scale, trialCount);
             }
         }
     }
@@ -91,6 +92,7 @@ public interface DataCollector {
 
         @Override
         public void inc(RedfileTag tag, BlockPos pos) {
+            counts.merge(RedfileTags.ALL, 1L, Long::sum);
             counts.merge(tag, 1L, Long::sum);
         }
 
@@ -101,18 +103,14 @@ public interface DataCollector {
                 return;
             }
             data.forEach((k, mv) -> mv.finishPredictive(trialCount));
-            var acc = new MoreMath.MeanVarAcc();
-            data.forEach((k, v) -> acc.add(v));
-            var allEntry = acc.finish();
             if (spiltTags) {
                 Map<RedfileTag, MoreMath.MeanAndVar> finalData = new Reference2ObjectArrayMap<>(data.size());
-                finalData.put(RedfileTags.ALL, allEntry);
                 data.entrySet().stream()
                     .sorted(Comparator.comparing(entry -> -entry.getValue().mean()))
                     .forEach(entry -> finalData.put(entry.getKey(), entry.getValue()));
                 summarizer.feedback(source, finalData);
             } else {
-                summarizer.feedback(source, Map.of(RedfileTags.ALL, allEntry));
+                summarizer.feedback(source, Map.of(RedfileTags.ALL, data.get(RedfileTags.ALL)));
             }
         }
 
