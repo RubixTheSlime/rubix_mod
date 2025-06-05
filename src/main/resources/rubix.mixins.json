@@ -9,6 +9,8 @@
     "MixinBlockHitResult",
     "MixinBlockPos",
     "MixinChainRestrictedNeighborUpdater",
+    "MixinDirection",
+    "MixinDirection$Type",
     "MixinEntity",
     "MixinMinecraftServer",
     "MixinNeighborUpdater",

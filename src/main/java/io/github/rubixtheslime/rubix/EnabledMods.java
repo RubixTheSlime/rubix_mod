@@ -15,4 +15,5 @@ public class EnabledMods {
     public static final boolean GAY_GRASS_ALL = GAY_GRASS_VIDEO || CONFIG.gayGrassOptions.colorAll();
     public static final boolean REDFILE = enabledMods.enableRedfile();
     public static final boolean SUPPRESSION_BLOCKS = enabledMods.enableSuppressionBlocks();
+    public static final boolean TRANS_WORLD = enabledMods.enableTransWorld();
 }

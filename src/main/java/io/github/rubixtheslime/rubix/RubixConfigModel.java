@@ -26,6 +26,8 @@ public class RubixConfigModel {
         @SectionHeader("danger_zone")
         @RestartRequired
         public boolean enableGayGrassVideo = false;
+        @RestartRequired
+        public boolean enableTransWorld = false;
 
     }
 

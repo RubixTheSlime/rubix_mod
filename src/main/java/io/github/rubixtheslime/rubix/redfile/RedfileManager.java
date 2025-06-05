@@ -54,7 +54,8 @@ public class RedfileManager {
     }
 
     public static RedfileTracker getCurrent() {
-        return ((RedfileTracker) tracked);
+        // this should never be null but under some intense situations it's happened
+        return tracked == null ? RedfileTracker.EMPTY : ((RedfileTracker) tracked);
     }
 
     public static boolean tryStart(
