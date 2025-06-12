@@ -2,14 +2,20 @@ package io.github.rubixtheslime.rubix.redfile.client;
 
 
 import com.mojang.blaze3d.vertex.VertexFormat;
+import io.github.rubixtheslime.rubix.ModRegistries;
 import io.github.rubixtheslime.rubix.RubixConfig;
 import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.network.RedfileResultPacket;
+import io.github.rubixtheslime.rubix.network.RedfileTranslationPacket;
+import io.github.rubixtheslime.rubix.redfile.RedfileTag;
+import io.github.rubixtheslime.rubix.redfile.RedfileTags;
+import io.github.rubixtheslime.rubix.redfile.TaggedStats;
 import io.github.rubixtheslime.rubix.render.ModRenderLayer;
 import io.github.rubixtheslime.rubix.util.MoreMath;
 import io.github.rubixtheslime.rubix.util.SetOperation;
 import io.github.rubixtheslime.rubix.util.Util;
 import it.unimi.dsi.fastutil.longs.*;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.pattern.CachedBlockPosition;
@@ -18,13 +24,12 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.BufferAllocator;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.command.argument.BlockStateArgument;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.apache.commons.math3.stat.interval.ConfidenceInterval;
 import org.joml.*;
 
 import java.awt.*;
@@ -38,39 +43,57 @@ import java.util.stream.Stream;
 public class RedfileResultManager {
     private static final BufferAllocator LINE_BUFFER_ALLOCATOR = new BufferAllocator(1536);
     private static final RubixConfig.RedfileOptions CONFIG = RubixMod.CONFIG.redfileOptions;
-    private final Map<RegistryKey<World>, WorldEntry> results = new HashMap<>();
+    private final Map<Identifier, WorldEntry> results = new HashMap<>();
+    private final List<RedfileTag> translation = new ArrayList<>();
+    private Set<RedfileTag> activeTags;
     private ColorMap colorMap = null;
     private RenderTrie tileRenderTrie = null;
     private RenderTrie lineRenderTrie = null;
     private World worldRenderedAt = null;
-    private ConfidenceInterval sumOfSelected = null;
+    private TaggedStats.Display sumOfSelected = null;
 
     public void addDebug(BlockPos pos, int width, World world) {
-        Map<Long, Long> map = new Long2LongOpenHashMap(width * 12);
+        Map<Long, int[]> map = new Long2ObjectOpenHashMap<>(width * 12);
         for (int i = 0; i < 12 * width; i++) {
-            long sampleCount = new MoreMath.MeanAndVar(Math.pow(10, ((double) i / width) - 9), 0).pack();
+            var mv = new MoreMath.MeanAndVar(Math.pow(10, ((double) i / width) - 9), 0);
+            int[] entry = TaggedStats.of(Map.of(RedfileTags.UNTAGGED, mv)).pack();
             int dcol = i % (width * 2);
             long longBlockPos = BlockPos.asLong(pos.getX() + Math.min(dcol, width * 2  - 1 - dcol), pos.getY(), pos.getZ() + (i / width));
-            map.put(longBlockPos, sampleCount);
+            map.put(longBlockPos, entry);
         }
-        addResult(new RedfileResultPacket(map), world);
+        addResultDirect(new RedfileResultPacket(map, false, world.getRegistryKey().getValue()));
     }
 
     public boolean addEmpty(World world) {
-        addResult(new RedfileResultPacket(Collections.emptyMap()), world);
+        addResultDirect(new RedfileResultPacket(Collections.emptyMap(), false, world.getRegistryKey().getValue()));
         return true;
     }
 
-    public void addResult(RedfileResultPacket result, World world) {
-        var entry = results.computeIfAbsent(world.getRegistryKey(), x ->
+    public void addResult(RedfileResultPacket result) {
+        var data = new Long2ObjectOpenHashMap<>(result.data());
+        data.replaceAll((posLong, packed) -> TaggedStats.unpack(packed, false, translation).pack());
+        addResultDirect(new RedfileResultPacket(data, result.splitTags(), result.worldIdentifier()));
+    }
+
+    public void addResultDirect(RedfileResultPacket result) {
+//        var client = MinecraftClient.getInstance();
+        var entry = results.computeIfAbsent(result.worldIdentifier(), x ->
             new WorldEntry(new ArrayList<>(), new LongOpenHashSet())
         );
-        entry.results.addLast(new RedfileResult(result.data()));
+        entry.results.addLast(new RedfileResult(result.data(), this));
         tileRenderTrie = null;
     }
 
+    public Set<RedfileTag> getActiveTags() {
+        if (activeTags == null) {
+            activeTags = new ReferenceOpenHashSet<>(ModRegistries.REDFILE_TAG.size());
+            ModRegistries.REDFILE_TAG.stream().forEach(activeTags::add);
+        }
+        return activeTags;
+    }
+
     public void render(MatrixStack stack, Vec3d cameraPos, Frustum frustum, World world) {
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null || worldEntry.results.isEmpty()) return;
 
         if (world != worldRenderedAt) {
@@ -150,16 +173,17 @@ public class RedfileResultManager {
         ModRenderLayer.HIGHLIGHT_LINE.draw(buffer);
     }
 
-    public ConfidenceInterval getSumOfSelected(World world) {
+    public TaggedStats.Display getSumOfSelected(World world) {
         if (sumOfSelected == null) {
-            var worldEntry = results.get(world.getRegistryKey());
+            var worldEntry = results.get(world.getRegistryKey().getValue());
             if (worldEntry == null || worldEntry.solo == null) return null;
             var soloed = worldEntry.solo;
-            var summer = new MoreMath.MeanVarAcc();
+            var summer = new TaggedStats.Accumulator();
             worldEntry.selected.stream()
                 .filter(worldEntry::checkLayer)
-                .forEach(key -> summer.add(soloed.get(key)));
-            sumOfSelected = MoreMath.clampZero(summer.finish().middleInterval(0.05));
+                .forEach(key -> summer.add(soloed.get(key).stats().stats()));
+//            sumOfSelected = MoreMath.clampZero(summer.finish().middleInterval(0.05));
+            sumOfSelected = summer.finish().getDisplay(getActiveTags());
         }
         return sumOfSelected;
     }
@@ -167,7 +191,8 @@ public class RedfileResultManager {
     public void toggleLookingAt(MinecraftClient client) {
         var tile = getLookingAt(client);
         if (tile == null) return;
-        var worldEntry = results.get(client.world.getRegistryKey());
+        assert client.world != null;
+        var worldEntry = results.get(client.world.getRegistryKey().getValue());
         if (worldEntry == null) return;
         boolean wasEmpty = worldEntry.selected.isEmpty();
         long blockPosLong = tile.pos.asLong();
@@ -187,30 +212,20 @@ public class RedfileResultManager {
             .orElse(null);
         if (pos4i == null) return null;
         long blockPosLong = BlockPos.asLong(pos4i.x, pos4i.y, pos4i.z);
-        var worldEntry = results.get(client.world.getRegistryKey());
+        var worldEntry = results.get(client.world.getRegistryKey().getValue());
         return worldEntry == null ? null : worldEntry.streamResults()
-            .map(r -> r.getTile(blockPosLong))
-            .filter(Objects::nonNull)
-            .max(Comparator.comparing(ResultTile::estimate))
+            .map(r -> {
+                var tile = r.get(blockPosLong);
+                return Map.entry(tile, tile.getValue());
+            })
+            .filter(entry -> entry.getValue() != 0)
+            .max(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
             .orElse(null);
     }
 
-    public boolean clearSelection(World world) {
-        var worldEntry = results.get(world.getRegistryKey());
-        if (worldEntry == null) return false;
-        boolean res = !worldEntry.selected.isEmpty();
-        if (res) {
-            worldEntry.selected.clear();
-            worldEntry.solo = null;
-            tileRenderTrie = null;
-            lineRenderTrie = null;
-            sumOfSelected = null;
-        }
-        return res;
-    }
-
     public boolean clearResults(World world) {
-        boolean res = results.remove(world.getRegistryKey()) != null;
+        boolean res = results.remove(world.getRegistryKey().getValue()) != null;
         if (res) {
             tileRenderTrie = null;
             lineRenderTrie = null;
@@ -229,11 +244,12 @@ public class RedfileResultManager {
         Map<Long, Float> amounts = new Long2FloatOpenHashMap();
         worldEntry.streamResults()
             .filter(RedfileResult::isActive)
-            .forEach(display -> display.data.forEach((blockPosLong, packed) -> {
-                if (!worldEntry.checkLayer(blockPosLong)) return;
-
-                float logNanos = (float) Math.log(MoreMath.MeanAndVar.unpack(packed).mean()) * (1f / (float) Math.log(10)) + 6f;
-                amounts.merge(blockPosLong, logNanos, Math::max);
+            .forEach(display -> display.stream().forEach(tile -> {
+                if (!worldEntry.checkLayer(tile.pos.asLong())) return;
+                double value = tile.getValue();
+                if (value == 0) return;
+                float logNanos = (float) Math.log(value) * (1f / (float) Math.log(10)) + 6f;
+                amounts.merge(tile.pos.asLong(), logNanos, Math::max);
             }));
         Map<Long, Integer> colors = new Long2IntOpenHashMap();
         amounts.forEach((pos, logNanos) -> colors.put(pos, colorMap.getColor(logNanos) | Integer.MIN_VALUE));
@@ -304,7 +320,7 @@ public class RedfileResultManager {
     }
 
     public boolean drop(World world, int index) {
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null) return false;
         var entry = worldEntry.remove(index);
         if (entry == null) return false;
@@ -316,7 +332,7 @@ public class RedfileResultManager {
     }
 
     public boolean setLayer(World world, Integer layer) {
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null || Objects.equals(worldEntry.layer, layer)) return false;
         worldEntry.layer = layer;
         tileRenderTrie = null;
@@ -326,7 +342,7 @@ public class RedfileResultManager {
     }
 
     public boolean moveLayer(World world, boolean up) {
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null || worldEntry.layer == null) return false;
         worldEntry.layer += up ? 1 : -1;
         tileRenderTrie = null;
@@ -336,7 +352,7 @@ public class RedfileResultManager {
     }
 
     public boolean setAllActive(World world, boolean active) {
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null) return false;
         var res = worldEntry.results.stream().anyMatch(x -> x.active != active);
         if (!res) return false;
@@ -349,7 +365,7 @@ public class RedfileResultManager {
     }
 
     public boolean setActive(World world, int index, boolean active) {
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null) return false;
         var entry = worldEntry.get(index);
         if (entry == null) return false;
@@ -364,7 +380,7 @@ public class RedfileResultManager {
 
     public boolean selectAll(World world, int index) {
         setActive(world, index, true);
-        var worldEntry = results.get(world.getRegistryKey());
+        var worldEntry = results.get(world.getRegistryKey().getValue());
         if (worldEntry == null) return false;
         var entry = worldEntry.get(index);
         if (entry == null) return false;
@@ -374,12 +390,12 @@ public class RedfileResultManager {
     }
 
     public boolean isSelecting(World world) {
-        var entry = results.get(world.getRegistryKey());
+        var entry = results.get(world.getRegistryKey().getValue());
         return entry != null && entry.solo != null;
     }
 
     public boolean applySetOperationToSelection(World world, SetOperation operation, BlockBox box, BlockStateArgument blockStateArgument) {
-        var entry = results.get(world.getRegistryKey());
+        var entry = results.get(world.getRegistryKey().getValue());
         if (entry == null) return false;
         Set<Long> described = new LongOpenHashSet();
         entry.solo.data.keySet().forEach(blockPosLong ->{
@@ -401,6 +417,14 @@ public class RedfileResultManager {
         lineRenderTrie = null;
         sumOfSelected = null;
         return true;
+    }
+
+    public void setTranslation(RedfileTranslationPacket packet) {
+        translation.clear();
+        for (var name : packet.names()) {
+            var tag = ModRegistries.REDFILE_TAG.get(Identifier.of(name));
+            translation.addLast(tag == null ? RedfileTags.UNFAMILIAR : tag);
+        }
     }
 
     private static final class WorldEntry {
@@ -451,21 +475,28 @@ public class RedfileResultManager {
     }
 
     public static final class RedfileResult {
-        private final Map<Long, Long> data;
+        private final Map<Long, int[]> data;
+        private final RedfileResultManager manager;
         private boolean active = true;
 
-        private RedfileResult(Map<Long, Long> data) {
-            this.data = new Long2LongOpenHashMap(data);
+        private RedfileResult(Map<Long, int[]> data, RedfileResultManager manager) {
+            this.data = data;
+            this.manager = manager;
         }
 
-        public MoreMath.MeanAndVar get(long longBlockPos) {
-            var x = data.get(longBlockPos);
-            return x == null ? null : MoreMath.MeanAndVar.unpack(x);
+        public ResultTile get(long blockPosLong) {
+            var statsEntry = TaggedStats.unpack(data.get(blockPosLong), false);
+            return new ResultTile(BlockPos.fromLong(blockPosLong), statsEntry.getDisplay(manager.getActiveTags()), this);
         }
 
-        public ResultTile getTile(long blockPosLong) {
-            var entry = data.get(blockPosLong);
-            return entry == null ? null : new ResultTile(BlockPos.fromLong(blockPosLong), MoreMath.MeanAndVar.unpack(entry), this);
+        public Stream<ResultTile> stream() {
+            return data.entrySet()
+                .stream()
+                .map(entry -> new ResultTile(
+                    BlockPos.fromLong(entry.getKey()),
+                    TaggedStats.unpack(entry.getValue(), false).getDisplay(manager.getActiveTags()),
+                    this
+                ));
         }
 
         public boolean isActive() {
@@ -478,14 +509,20 @@ public class RedfileResultManager {
 
     }
 
-    public record ResultTile(BlockPos pos, MoreMath.MeanAndVar meanAndVar, RedfileResult master) {
-        public ConfidenceInterval getInterval() {
-            return MoreMath.clampZero(meanAndVar.middleInterval(RubixMod.CONFIG.redfileOptions.alpha()));
+    public record ResultTile(BlockPos pos, TaggedStats.Display stats, RedfileResult master) {
+//        public ConfidenceInterval getInterval() {
+//            return MoreMath.clampZero(meanAndVar.middleInterval(RubixMod.CONFIG.redfileOptions.alpha()));
+//        }
+
+        public boolean isEmpty() {
+            return stats.isEmpty();
         }
 
-        public double estimate() {
-            return meanAndVar.mean();
+        public double getValue() {
+            var mv = stats.sum();
+            return mv.mean();
         }
+
     }
 
 }

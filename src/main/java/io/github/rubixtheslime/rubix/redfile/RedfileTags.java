@@ -6,8 +6,10 @@ import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public class RedfileTags {
-    public static final RedfileTag ALL = register("all", RedfileTag.of());
+    public static final RedfileTag UNFAMILIAR = register("unfamiliar", RedfileTag.of());
     public static final RedfileTag UNKNOWN = register("unknown", RedfileTag.of());
+    public static final RedfileTag UNTAGGED = register("untagged", RedfileTag.of());
+
     public static final RedfileTag BLOCK_EVENT = register("block_event", RedfileTag.of());
     public static final RedfileTag BLOCK_INTERACT = register("block_interact", RedfileTag.of());
     public static final RedfileTag BLOCK_STEP = register("block_step", RedfileTag.of());

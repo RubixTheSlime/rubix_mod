@@ -92,11 +92,11 @@ public class MoreMath {
         }
 
         /// finalize the results for the case of estimating the mean
-        public void finishPredictive(int n) {
+        public void finishPredictive(long n) {
             variance /= (n - 1) * n;
         }
 
-        public void update(double x, int n) {
+        public void update(double x, long n) {
             double d = x - mean;
             mean += d / n;
             double d2 = x - mean;
@@ -121,6 +121,10 @@ public class MoreMath {
 
         public MeanAndVar copy() {
             return new MeanAndVar(mean, variance);
+        }
+
+        public boolean isEmpty() {
+            return mean == 0 && variance == 0;
         }
     }
 

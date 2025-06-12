@@ -4,6 +4,7 @@ import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.command.ModCommands;
 import io.github.rubixtheslime.rubix.item.ModItems;
 import io.github.rubixtheslime.rubix.network.RedfileResultPacket;
+import io.github.rubixtheslime.rubix.network.RedfileTranslationPacket;
 import io.wispforest.owo.network.OwoNetChannel;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
@@ -21,7 +22,11 @@ public class RubixMod implements ModInitializer {
         ModCommands.init();
         ModBlocks.initialize();
         ModItems.initialize();
-        if (EnabledMods.REDFILE) RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileResultPacket.class);
+        if (EnabledMods.REDFILE) {
+            RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileResultPacket.class);
+            RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileTranslationPacket.class);
+        }
         LOGGER.info("lithium loaded: {}", EnabledMods.EX_LITHIUM);
     }
+
 }

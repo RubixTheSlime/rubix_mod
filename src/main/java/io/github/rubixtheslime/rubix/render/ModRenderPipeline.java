@@ -2,8 +2,10 @@ package io.github.rubixtheslime.rubix.render;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import io.github.rubixtheslime.rubix.RubixMod;
 import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.Identifier;
 
 public class ModRenderPipeline {
@@ -22,6 +24,16 @@ public class ModRenderPipeline {
             .withCull(false)
             .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
             .withDepthWrite(false)
+            .build()
+    );
+
+    public static final RenderPipeline PIE_CHART_QUADS = RenderPipelines.register(
+        RenderPipeline.builder(RenderPipelines.POSITION_TEX_COLOR_SNIPPET)
+            .withLocation(Identifier.of(RubixMod.MOD_ID, "pipeline/pie_chart_quads"))
+            .withCull(false)
+            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+            .withDepthWrite(false)
+            .withVertexFormat(VertexFormats.POSITION_TEXTURE_COLOR, VertexFormat.DrawMode.QUADS)
             .build()
     );
 

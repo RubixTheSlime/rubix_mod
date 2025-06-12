@@ -7,9 +7,26 @@ import org.apache.commons.math3.stat.interval.ConfidenceInterval;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 
+import java.util.Map;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+
 public class Util {
 
     private static final char[] PREFIXES = new char[]{'μ', 'n', 'p', 'f', 'a', 'z', 'y', 'r', 'q'};
+
+    public static <K, V> void removeIf(Map<K, V> map, BiPredicate<K, V> f) {
+        map.entrySet()
+            .stream()
+            .filter(entry -> f.test(entry.getKey(), entry.getValue()))
+            .map(Map.Entry::getKey)
+            .toList()
+            .forEach(map::remove);
+    }
+
+    public static <V> void removeIfValue(Map<?, V> map, Predicate<V> f) {
+        removeIf(map, (k, v) -> f.test(v));
+    }
 
     public static Vector3d vec3dToVector3d(Vec3d v) {
         return new Vector3d(v.x, v.y, v.z);

@@ -61,6 +61,7 @@ public class MixinMinecraftClient implements IMixinMinecraftClient {
 
     @Inject(method = "joinWorld", at = @At("HEAD"))
     public void joinWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
+        
         if (EnabledMods.GAY_GRASS) {
             RubixModClient.prideFlagManager.setBiomeSeed(world.getBiomeAccess().seed);
         }

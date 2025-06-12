@@ -14,66 +14,53 @@ import java.util.Map;
 import static io.github.rubixtheslime.rubix.util.Util.formatTime;
 
 public interface RedfileSummarizer {
-    void feedback(ServerCommandSource source, Map<RedfileTag, MoreMath.MeanAndVar> data);
+    void feedback(ServerCommandSource source, TaggedStats.Display stats);
+
+    Map<String, TaggedStats.Display> CONTROLS = new Object2ObjectOpenHashMap<>();
 
     static RedfileSummarizer average(double alpha) {
-        return (source, data) -> {
-            var fullText = Text.empty();
-            boolean multi = false;
-            for (var entry : data.entrySet()) {
-                var interval = entry.getValue().middleInterval(alpha);
-                var rangeStr = Util.formatTimeInterval(CompareMode.RANGE, MoreMath.clampZero(interval), entry.getKey() == RedfileTags.ALL, false);
-                Text text = entry.getKey() == RedfileTags.ALL
-                    ? Text.translatable("rubix.command.redfile.average_finish", rangeStr)
-                    : Text.translatable("rubix.command.redfile.with_tag", Text.translatable("redfile.tag." + entry.getKey()), rangeStr);
-                if (multi) fullText.append("\n");
-                multi = true;
-                fullText.append(text);
+        return (source, display) -> {
+            var sumRangeStr = Util.formatTimeInterval(CompareMode.RANGE, MoreMath.clampZero(display.sum().middleInterval(alpha)), true, false);
+            var fullText = Text.translatable("rubix.command.redfile.average_finish", sumRangeStr);
+            for (var entry : display.data().entrySet()) {
+                fullText.append("\n");
+                var rangeStr = Util.formatTimeInterval(CompareMode.RANGE, MoreMath.clampZero(entry.getValue().middleInterval(alpha)), false, false);
+                fullText.append(Text.translatable("rubix.command.redfile.with_tag", entry.getKey().getName(), rangeStr));
             }
             source.sendFeedback(() -> fullText, false);
         };
     }
 
     static RedfileSummarizer compare(CompareMode mode, String name, double alpha) {
-        return (source, data) -> {
-            var control = ControlEntry.CONTROLS.get(name);
+        return (source, display) -> {
+            var control = CONTROLS.get(name);
             if (control == null) {
                 source.sendFeedback(() -> Text.translatable("rubix.command.redfile.compare.control.none", name), false);
                 return;
             }
-            for (var entry : data.entrySet()) {
-                var controlMv = control.data.get(entry.getKey());
-                if (controlMv == null) continue;
+            var sumRangeStr = Util.formatTimeInterval(CompareMode.RANGE, MoreMath.clampZero(display.sum().middleInterval(alpha)), true, true);
+            var fullText = Text.translatable("rubix.command.redfile.average_finish", sumRangeStr);
+            for (var entry : display.data().entrySet()) {
+                var controlMv = control.stats().get(entry.getKey());
                 var mv = entry.getValue().copy();
                 mv.sub(controlMv);
-                double z = mv.mean() / mv.stdDev();
-                var interval = mode.normalInterval(mv, alpha);
-                var rangeStr = Util.formatTimeInterval(mode, interval, entry.getKey() == RedfileTags.ALL, true);
-
-                Text text;
-                if (entry.getKey() == RedfileTags.ALL) {
-                    text = Text.translatable("rubix.command.redfile.average_finish", rangeStr,
-                        Util.formatTimeDelta(mv.mean()),
-                        Util.formatTime(mv.stdDev()),
-                        "%.3g".formatted(mode.erfc(z))
-                        );
-                } else {
-                    text = Text.translatable("rubix.command.redfile.with_tag", Text.translatable("redfile.tag." + entry.getKey()), rangeStr);
-                }
-                source.sendFeedback(() -> text, false);
+                var rangeStr = Util.formatTimeInterval(mode, mode.normalInterval(mv, alpha), false, true);
+                Text text = Text.translatable("rubix.command.redfile.with_tag", entry.getKey().getName(), rangeStr);
+                fullText.append("\n");
+                fullText.append(text);
             }
+            source.sendFeedback(() -> fullText, false);
         };
     }
 
     static RedfileSummarizer setControl(String name) {
-        return (source, data) -> {
-            ControlEntry.CONTROLS.put(name, new ControlEntry(data));
+        return (source, display) -> {
+            CONTROLS.put(name, display);
             source.sendFeedback(() -> Text.translatable("rubix.command.redfile.compare.control.set", name), false);
         };
     }
 
     class ControlEntry {
-        private static final Map<String, ControlEntry> CONTROLS = new Object2ObjectOpenHashMap<>();
         private final Map<RedfileTag, MoreMath.MeanAndVar> data;
 
         private ControlEntry(Map<RedfileTag, MoreMath.MeanAndVar> data) {

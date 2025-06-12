@@ -2,44 +2,57 @@ package io.github.rubixtheslime.rubix.redfile;
 
 import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.network.RedfileResultPacket;
-import io.github.rubixtheslime.rubix.util.MoreMath;
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
-import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 
 
-public interface DataCollector {
-    void start(ServerWorld world);
-    void inc(RedfileTag tag, BlockPos pos);
-    void finish(ServerCommandSource source, ServerWorld world);
-    void split(long trialSamples, double tickRate);
+public abstract class DataCollector {
+    protected long trialCount = 0;
 
-    interface Builder {
+    public abstract void start(ServerWorld world);
+
+    public abstract void inc(RedfileTag tag, BlockPos pos);
+
+    public void split(long trialSamples, double tickRate) {
+        trialCount++;
+        splitInner(trialSamples, tickRate / trialSamples);
+    }
+
+    protected abstract void splitInner(long trialSamples, double sampleWeight);
+
+    public boolean finish(ServerCommandSource source, ServerWorld world) {
+        if (trialCount < 2) {
+            source.sendFeedback(() -> Text.translatable("rubix.command.redfile.one_trial"), false);
+            return false;
+        }
+        return true;
+    }
+
+    public interface Builder {
         DataCollector get();
     }
 
-    static Builder heatMap(boolean splitTags) {
-        return DetailedCollector::new;
+    public static Builder heatMap(boolean splitTags) {
+        return () -> new DetailedCollector(splitTags);
     }
 
-    static Builder summary(RedfileSummarizer summarizer, boolean splitTags) {
+    public static Builder summary(RedfileSummarizer summarizer, boolean splitTags) {
         return () -> new SummaryCollector(summarizer, splitTags);
     }
 
-    class DetailedCollector implements DataCollector {
-        private int trialCount = 0;
-        private Map<Long, Long> counts = new Long2LongOpenHashMap();
-        private final Map<Long, MoreMath.MeanAndVar> stats = new Long2ObjectOpenHashMap<>();
+    public static class DetailedCollector extends DataCollector {
+        private final boolean splitTags;
+        private final Map<Long, TaggedStats.Builder> builders = new Long2ObjectOpenHashMap<>();
+        private final Map<Long, TaggedStats> stats = new Long2ObjectOpenHashMap<>();
+
+        public DetailedCollector(boolean splitTags) {
+            this.splitTags = splitTags;
+        }
 
         @Override
         public void start(ServerWorld world) {
@@ -47,43 +60,42 @@ public interface DataCollector {
 
         @Override
         public void inc(RedfileTag tag, BlockPos pos) {
-            counts.merge(pos.asLong(), 1L, Long::sum);
+            builders
+                .computeIfAbsent(pos.asLong(), a -> TaggedStats.Builder.create(false, splitTags))
+                .inc(tag);
         }
 
         @Override
-        public void finish(ServerCommandSource source, ServerWorld world) {
-            Map<Long, Long> data = new Long2LongOpenHashMap();
+        public void splitInner(long trialSamples, double sampleWeight) {
+            for (var entry : builders.entrySet()) {
+                var statsEntry = stats.computeIfAbsent(entry.getKey(), a -> TaggedStats.create(false));
+                entry.getValue().commit(statsEntry, sampleWeight, trialCount);
+            }
+        }
+
+        @Override
+        public boolean finish(ServerCommandSource source, ServerWorld world) {
+            if (!super.finish(source, world)) return false;
+            Map<Long, int[]> data = new Long2ObjectOpenHashMap<>();
             for (var entry : stats.entrySet()) {
                 var value = entry.getValue();
-                value.finishPredictive(trialCount);
+                value.finishCollecting(trialCount);
                 data.put(entry.getKey(), value.pack());
             }
-            RubixMod.RUBIX_MOD_CHANNEL.serverHandle(source.getPlayer()).send(new RedfileResultPacket(data));
+            RubixMod.RUBIX_MOD_CHANNEL.serverHandle(source.getPlayer()).send(new RedfileResultPacket(data, splitTags, world.getRegistryKey().getValue()));
+            return true;
         }
 
-        @Override
-        public void split(long trialSamples, double tickRate) {
-            trialCount++;
-            double scale = tickRate / trialSamples;
-            for (var entry : counts.entrySet()) {
-                var value = entry.getValue();
-                entry.setValue(0L);
-                var mv = stats.computeIfAbsent(entry.getKey(), i -> new MoreMath.MeanAndVar());
-                mv.update(value * scale, trialCount);
-            }
-        }
     }
 
-    class SummaryCollector implements DataCollector {
-        private int trialCount = 0;
-        private final Map<RedfileTag, Long> counts = new Reference2LongOpenHashMap<>();
-        private final Map<RedfileTag, MoreMath.MeanAndVar> data = new Reference2ObjectOpenHashMap<>();
+    public static class SummaryCollector extends DataCollector {
         private final RedfileSummarizer summarizer;
-        private final boolean spiltTags;
+        private final TaggedStats.Builder builder;
+        private final TaggedStats stats = TaggedStats.create(false);
 
-        public SummaryCollector(RedfileSummarizer summarizer, boolean spiltTags) {
+        public SummaryCollector(RedfileSummarizer summarizer, boolean splitTags) {
             this.summarizer = summarizer;
-            this.spiltTags = spiltTags;
+            this.builder = TaggedStats.Builder.create(false, splitTags);
         }
 
         @Override
@@ -92,39 +104,22 @@ public interface DataCollector {
 
         @Override
         public void inc(RedfileTag tag, BlockPos pos) {
-            counts.merge(RedfileTags.ALL, 1L, Long::sum);
-            counts.merge(tag, 1L, Long::sum);
+            builder.inc(tag);
         }
 
         @Override
-        public void finish(ServerCommandSource source, ServerWorld world) {
-            if (trialCount < 2) {
-                source.sendFeedback(() -> Text.translatable("rubix.command.redfile.one_trial"), false);
-                return;
-            }
-            data.forEach((k, mv) -> mv.finishPredictive(trialCount));
-            if (spiltTags) {
-                Map<RedfileTag, MoreMath.MeanAndVar> finalData = new Reference2ObjectArrayMap<>(data.size());
-                data.entrySet().stream()
-                    .sorted(Comparator.comparing(entry -> -entry.getValue().mean()))
-                    .forEach(entry -> finalData.put(entry.getKey(), entry.getValue()));
-                summarizer.feedback(source, finalData);
-            } else {
-                summarizer.feedback(source, Map.of(RedfileTags.ALL, data.get(RedfileTags.ALL)));
-            }
+        public void splitInner(long trialSamples, double sampleWeight) {
+            builder.commit(stats, sampleWeight, trialCount);
         }
 
         @Override
-        public void split(long trialSamples, double tickRate) {
-            trialCount++;
-            for (var entry : counts.entrySet()) {
-                double x = (double) entry.getValue() * tickRate / trialSamples;
-                data.computeIfAbsent(entry.getKey(), a -> new MoreMath.MeanAndVar())
-                    .update(x, trialCount);
-            }
-
-            counts.replaceAll((a, b) -> 0L);
+        public boolean finish(ServerCommandSource source, ServerWorld world) {
+            if (!super.finish(source, world)) return false;
+            stats.finishCollecting(trialCount);
+            summarizer.feedback(source, stats.getDisplay(null));
+            return true;
         }
+
     }
 
 }

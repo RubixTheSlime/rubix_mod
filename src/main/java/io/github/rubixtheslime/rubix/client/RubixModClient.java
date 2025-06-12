@@ -6,6 +6,7 @@ import io.github.rubixtheslime.rubix.command.client.ModClientCommands;
 import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
 import io.github.rubixtheslime.rubix.network.RedfileResultPacket;
+import io.github.rubixtheslime.rubix.network.RedfileTranslationPacket;
 import io.github.rubixtheslime.rubix.redfile.client.RedfileClientInit;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -20,6 +21,7 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.WorldSavePath;
 import org.lwjgl.glfw.GLFW;
 
 public class RubixModClient implements ClientModInitializer {
@@ -34,8 +36,18 @@ public class RubixModClient implements ClientModInitializer {
             RedfileClientInit.init();
             RubixMod.RUBIX_MOD_CHANNEL.registerClientbound(RedfileResultPacket.class, (message, access) -> {
                 var client = MinecraftClient.getInstance();
-                ((IMixinMinecraftClient) client).rubix$getRedfileResultManager().addResult(message, client.world);
+                ((IMixinMinecraftClient) client).rubix$getRedfileResultManager().addResult(message);
             });
+            RubixMod.RUBIX_MOD_CHANNEL.registerClientbound(RedfileTranslationPacket.class, (message, access) -> {
+                var client = MinecraftClient.getInstance();
+//                client.getServer().
+//                client.getServer()
+//                client.getSessionService().joinServer();
+//                client.getServer().getSavePath(WorldSavePath.ROOT).getParent().getFileName().toString();
+                ((IMixinMinecraftClient) client).rubix$getRedfileResultManager().setTranslation(message);
+            });
+
         }
     }
+
 }

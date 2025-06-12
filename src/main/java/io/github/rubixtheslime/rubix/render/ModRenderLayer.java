@@ -1,7 +1,10 @@
 package io.github.rubixtheslime.rubix.render;
 
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import io.github.rubixtheslime.rubix.redfile.client.ColorMap;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.RenderPhase;
 import net.minecraft.util.TriState;
 
@@ -31,6 +34,15 @@ public class ModRenderLayer {
         ModRenderPipeline.HIGHLIGHT_TEX_HIDDEN,
         ModRenderPipeline.HIGHLIGHT_TEX_VISIBLE,
         RenderLayer.MultiPhaseParameters.builder().texture(new RenderPhase.Texture(ColorMap.REDFILE_MULTISHAPE_TILES, TriState.DEFAULT, true)).build(false)
+    );
+
+    public static final RenderLayer PIE_CHART_CHUNKS = RenderLayer.of(
+        "highlight_redfile_multishape_tile",
+        786432,
+        false,
+        true,
+        ModRenderPipeline.PIE_CHART_QUADS,
+        RenderLayer.MultiPhaseParameters.builder().texture(new RenderPhase.Texture(UncertainPieChart.QUARTER_CIRCLE, TriState.DEFAULT, false)).build(false)
     );
 
     public static final RenderLayer HIGHLIGHT_LINE = RenderLayer.of(
