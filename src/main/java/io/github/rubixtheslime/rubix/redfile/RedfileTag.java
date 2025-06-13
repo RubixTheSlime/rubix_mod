@@ -14,7 +14,7 @@ public class RedfileTag {
     }
 
     public Color getColor() {
-        return new Color((this.id().hashCode() & 0xaaaaaa) + 0x444444);
+        return new Color((this.id().hashCode() & 0xaaaaaa) + 0x333333);
     }
 
     public int index() {

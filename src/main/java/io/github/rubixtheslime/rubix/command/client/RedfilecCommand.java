@@ -3,22 +3,35 @@ package io.github.rubixtheslime.rubix.command.client;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import io.github.rubixtheslime.rubix.ModRegistries;
 import io.github.rubixtheslime.rubix.command.ModCommands;
 import io.github.rubixtheslime.rubix.command.ModEnumType;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
+import io.github.rubixtheslime.rubix.redfile.RedfileTag;
 import io.github.rubixtheslime.rubix.redfile.client.RedfileResultManager;
 import io.github.rubixtheslime.rubix.util.SetOperation;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.BlockStateArgument;
 import net.minecraft.command.argument.BlockStateArgumentType;
+import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.world.World;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
 
@@ -104,7 +117,44 @@ public class RedfilecCommand {
                     )
                 )
             )
+            .then(literal("tags")
+                .then(finishTagCommand("show", true, (manager, tag) -> manager.setTagActive(tag, true)))
+                .then(finishTagCommand("hide", true, (manager, tag) -> manager.setTagActive(tag, false)))
+                .then(finishTagCommand("solo", false, (manager, tag) -> {
+                    manager.setTagActive(null, false);
+                    manager.setTagActive(tag, true);
+                }))
+            )
         );
+    }
+
+    private static ArgumentBuilder<FabricClientCommandSource, ?> finishTagCommand(String name, boolean canAll, BiConsumer<RedfileResultManager, RedfileTag> f) {
+        var res = literal(name)
+            .then(argument("tag", IdentifierArgumentType.identifier())
+                .suggests(RedfilecCommand::getTagSuggestions)
+                .executes(context -> {
+                    var id = context.getArgument("tag", Identifier.class);
+                    var tag = ModRegistries.REDFILE_TAG.get(id);
+                    if (tag == null) {
+                        context.getSource().sendFeedback(Text.translatable("rubix.command.redfilec.no_exist_tag", id));
+                        return 0;
+                    }
+                    f.accept(getManager(context), tag);
+                    return 1;
+                })
+            );
+        return !canAll ? res : res
+            .then(literal("*")
+                .executes(context -> {
+                    f.accept(getManager(context), null);
+                    return 1;
+                })
+            );
+
+    }
+
+    static <S> CompletableFuture<Suggestions> getTagSuggestions(final CommandContext<S> context, final SuggestionsBuilder builder) throws CommandSyntaxException {
+           return CommandSource.suggestMatching(ModRegistries.REDFILE_TAG.stream().map(x -> x.id().toString()).toList().toArray(new String[0]), builder);
     }
 
     private static int applySetOp(CommandContext<FabricClientCommandSource> context) {
