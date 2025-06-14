@@ -1,10 +1,8 @@
 package io.github.rubixtheslime.rubix.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
-import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.network.NetworkThreadUtils;
 import net.minecraft.network.listener.PacketListener;
 import net.minecraft.network.packet.Packet;
@@ -32,6 +30,7 @@ public class MixinNetworkThreadUtils {
     private static <T extends PacketListener> void applyWrap(Packet<T> instance, T t, Operation<Void> original) {
         var world = PACKET_WORLD_MAP.remove(instance);
         RedfileManager.enterWorld(world);
+        // identifies as error, this is correct
         original.call(instance, t);
         RedfileManager.exitWorld(world);
     }

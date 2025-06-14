@@ -2,13 +2,10 @@ package io.github.rubixtheslime.rubix.redfile;
 
 import io.github.rubixtheslime.rubix.ModRegistries;
 import io.github.rubixtheslime.rubix.render.ColorMode;
-import net.minecraft.client.gui.hud.debug.PieChart;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
-
-import java.awt.*;
 
 public class RedfileTag {
 
@@ -30,10 +27,6 @@ public class RedfileTag {
         }
     }
 
-    public Color getColor() {
-        return new Color((this.id().hashCode() & 0xaaaaaa) + 0x333333);
-    }
-
     public int index() {
         return ModRegistries.REDFILE_TAG.getRawId(this);
     }
@@ -48,7 +41,7 @@ public class RedfileTag {
     }
 
     public Text getName() {
-        return Text.translatable("redfile.tag." + toString());
+        return Text.translatable("redfile.tag." + this);
     }
 
 }

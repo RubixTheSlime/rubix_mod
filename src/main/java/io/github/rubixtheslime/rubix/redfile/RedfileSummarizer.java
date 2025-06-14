@@ -11,8 +11,6 @@ import org.apache.commons.math3.stat.interval.ConfidenceInterval;
 
 import java.util.Map;
 
-import static io.github.rubixtheslime.rubix.util.Util.formatTime;
-
 public interface RedfileSummarizer {
     void feedback(ServerCommandSource source, TaggedStats.Display stats);
 
@@ -23,7 +21,7 @@ public interface RedfileSummarizer {
         return (source, display) -> {
             var sumRangeStr = Util.formatTimeInterval(CompareMode.RANGE, MoreMath.clampZero(display.sum().middleInterval(confidence)), true, false);
             var fullText = Text.translatable("rubix.command.redfile.average_finish", sumRangeStr);
-            if (!display.isOnlyUntagged()) {
+            if (display.shouldBreakDown()) {
                 for (var entry : display.data().entrySet()) {
                     var rangeStr = Util.formatTimeInterval(CompareMode.RANGE, MoreMath.clampZero(entry.getValue().middleInterval(confidence)), false, false);
                     fullText.append("\n");
@@ -46,7 +44,7 @@ public interface RedfileSummarizer {
             sum.sub(control.sum());
             var sumRangeStr = Util.formatTimeInterval(CompareMode.RANGE, mode.normalInterval(sum, confidence), true, true);
             var fullText = Text.translatable("rubix.command.redfile.average_finish", sumRangeStr);
-            if (!display.isOnlyUntagged()) {
+            if (display.shouldBreakDown()) {
                 control.stats().addEmpties(control.stats());
                 for (var entry : display.data().entrySet()) {
                     var controlMv = control.stats().get(entry.getKey());

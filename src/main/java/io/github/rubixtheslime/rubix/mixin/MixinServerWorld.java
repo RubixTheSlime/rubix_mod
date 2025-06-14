@@ -2,7 +2,6 @@ package io.github.rubixtheslime.rubix.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.entity.Entity;

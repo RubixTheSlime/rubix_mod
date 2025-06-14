@@ -27,9 +27,9 @@ import java.util.*;
 
 public abstract class FlagBuffer {
 
-    static final Getter SVG_GETTER = new Getter("svg", true) {
+    static final Getter SVG_GETTER = new Getter("svg") {
         @Override
-        public FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException {
+        public FlagBuffer build(Resource resource, JsonFlagEntry flagEntry) throws RuntimeException {
             try {
                 var stream = resource.getInputStream();
                 var loader = new SVGLoader();
@@ -38,30 +38,30 @@ public abstract class FlagBuffer {
                 if (svgDocument == null) {
                     throw new RuntimeException("null svg document");
                 }
-                return new Vector(identifier, flagEntry, svgDocument);
+                return new Vector(svgDocument);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
     };
-    static final Getter PNG_GETTER = new Getter("png", false) {
+    static final Getter PNG_GETTER = new Getter("png") {
         @Override
-        public FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException {
+        public FlagBuffer build(Resource resource, JsonFlagEntry flagEntry) throws RuntimeException {
             try {
                 InputStream stream = resource.getInputStream();
                 var image = ImageIO.read(stream);
                 if (image == null) {
                     throw new RuntimeException("null png image");
                 }
-                return new Pixel(identifier, flagEntry, image);
+                return new Pixel(image);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
     };
-    static final Getter MP4_GETTER = new Getter("mp4", false) {
+    static final Getter MP4_GETTER = new Getter("mp4") {
         @Override
-        public FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException {
+        public FlagBuffer build(Resource resource, JsonFlagEntry flagEntry) throws RuntimeException {
             try {
                 InputStream stream = resource.getInputStream();
                 var byteBuffer = ByteBuffer.wrap(stream.readAllBytes());
@@ -70,14 +70,14 @@ public abstract class FlagBuffer {
                 var frameGrab = FrameGrab.createFrameGrab(seekableChannel);
                 var track = (AbstractMP4DemuxerTrack)frameGrab.getVideoTrack();
 
-                return new Video(identifier, flagEntry, track.getFrameCount(), (int) track.getTimescale(), frameGrab);
+                return new Video(track.getFrameCount(), (int) track.getTimescale(), frameGrab);
             } catch (IOException | JCodecException e) {
                 throw new RuntimeException(e);
             }
         }
     };
 
-    protected FlagBuffer(Identifier identifier, JsonFlagEntry flagEntry) {
+    protected FlagBuffer() {
     }
 
     public abstract void draw(BufferedImage image, AffineTransform transform, FlagInstance.AnimationKey animationKey, FlagInstance instance);
@@ -103,8 +103,8 @@ public abstract class FlagBuffer {
     public static class Vector extends FlagBuffer {
         private final SVGDocument svgDocument;
 
-        public Vector(Identifier identifier, JsonFlagEntry flagEntry, SVGDocument svgDocument) {
-            super(identifier, flagEntry);
+        public Vector(SVGDocument svgDocument) {
+            super();
             this.svgDocument = svgDocument;
         }
 
@@ -143,8 +143,8 @@ public abstract class FlagBuffer {
     public static class Pixel extends FlagBuffer {
         private final BufferedImage bufferedImage;
 
-        protected Pixel(Identifier identifier, JsonFlagEntry flagEntry, BufferedImage bufferedImage) {
-            super(identifier, flagEntry);
+        protected Pixel(BufferedImage bufferedImage) {
+            super();
             this.bufferedImage = bufferedImage;
         }
 
@@ -191,8 +191,8 @@ public abstract class FlagBuffer {
         private boolean paused;
         private BufferedImage bufferedImage = null;
 
-        public Video(Identifier identifier, JsonFlagEntry flagEntry, long frameCount, int timescale, FrameGrab frameGrab) {
-            super(identifier, flagEntry);
+        public Video(long frameCount, int timescale, FrameGrab frameGrab) {
+            super();
             this.frameCount = frameCount;
             this.timescale = timescale;
             this.frameGrab = frameGrab;
@@ -277,10 +277,6 @@ public abstract class FlagBuffer {
             lastFrame = (int) frame;
             if (pic == null) return;
             bufferedImage = AWTUtil.toBufferedImage(pic);
-//            try {
-//                AWTUtil.toBufferedImage(pic, bufferedImage);
-//            } catch (Throwable ignored) {
-//            }
         }
         
         private Picture advance() {
@@ -303,11 +299,9 @@ public abstract class FlagBuffer {
 
     public abstract static class Getter {
         private final ResourceFinder finder;
-        private final boolean canAntialias;
 
-        Getter(String extension, boolean canAntialias) {
+        Getter(String extension) {
             finder = new ResourceFinder("flags", "." + extension);
-            this.canAntialias = canAntialias;
         }
 
         public static Getter of(String format) throws RuntimeException {
@@ -321,7 +315,7 @@ public abstract class FlagBuffer {
             return finder.toResourcePath(identifier);
         }
 
-        public abstract FlagBuffer build(Resource resource, Identifier identifier, JsonFlagEntry flagEntry) throws RuntimeException;
+        public abstract FlagBuffer build(Resource resource, JsonFlagEntry flagEntry) throws RuntimeException;
 
     }
 }

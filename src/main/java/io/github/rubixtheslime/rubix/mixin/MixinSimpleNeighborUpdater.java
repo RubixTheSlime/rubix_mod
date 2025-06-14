@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
-import io.github.rubixtheslime.rubix.redfile.RedfileTrackers;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;

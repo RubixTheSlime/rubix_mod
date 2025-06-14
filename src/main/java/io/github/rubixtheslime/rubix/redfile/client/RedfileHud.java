@@ -68,7 +68,7 @@ public class RedfileHud {
 
         if (blockStats != null && !blockStats.isEmpty()) renderEntries.addLast(new RedfileRenderEntry(Color.white, Text.translatable("rubix.hud.redfile.block"), blockStats.sum(), confidence, displayConfidence, false));
         if (sumStats != null && !sumStats.isEmpty()) renderEntries.addLast(new RedfileRenderEntry(Color.white, Text.translatable("rubix.hud.redfile.sum"), sumStats.sum(), confidence, displayConfidence, false));
-        if (!stats.isOnlyUntagged()) {
+        if (stats.shouldBreakDown()) {
             List<RedfileTag> tagsInOrder = stats.data().keySet().stream().toList();
             var colors = getColors(tagsInOrder);
             var colorIter = colors.iterator();

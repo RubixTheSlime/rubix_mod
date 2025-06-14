@@ -21,14 +21,6 @@ public class ModEnumType {
             super(CODEC, values);
         }
 
-        public static RedfileTimeUnitArgument trialUnit() {
-            return new RedfileTimeUnitArgument(ExtendedRedfileTimeUnit::trialLengths);
-        }
-
-        public static RedfileTimeUnitArgument runUnit() {
-            return new RedfileTimeUnitArgument(ExtendedRedfileTimeUnit::runLengths);
-        }
-
         public static RedfileTimeUnitArgument unit() {
             return new RedfileTimeUnitArgument(ExtendedRedfileTimeUnit::values);
         }

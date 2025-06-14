@@ -1,6 +1,5 @@
 package io.github.rubixtheslime.rubix.redfile;
 
-import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 

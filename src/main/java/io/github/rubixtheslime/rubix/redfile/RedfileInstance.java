@@ -15,6 +15,7 @@ public class RedfileInstance {
     private RedfileEndCondition trialEndCondition = null;
     private final DataCollector collector;
     private final TrialFilter filter;
+    // todo: finish implementing this
     private final boolean doLoad;
     private final boolean doSprint;
     private long startSamples;
@@ -60,15 +61,10 @@ public class RedfileInstance {
     public void stop() {
         trialEndCondition.stop();
         runEndCondition.stop();
-        long stopTicks = serverWorld.getTime();
-        long stopTime = System.currentTimeMillis();
         Sampler.getInstance().unbind(serverWorld, this);
-        long totalSamples = Sampler.getInstance().getTotalSamples() - startSamples;
         running = false;
 
-        double tickRate = (double) (stopTime - startTime) / Math.max(1, stopTicks - startTicks);
         if (doSprint) ((IMixinServerTickManager) serverWorld.getTickManager()).rubix$stopForceSprint();
-//        commandSource.sendFeedback(() -> Text.literal(String.format("number of samples: %d", sampler.getTotalSamples())), false);
         collector.finish(commandSource, serverWorld);
     }
 

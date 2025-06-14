@@ -7,8 +7,6 @@ import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 import net.minecraft.util.profiler.Profiler;
 
 import java.io.Reader;
@@ -23,8 +21,6 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
     private final ResourceManager resourceManager;
     private ColorGetter colorGetter;
     private long biomeSeed = 0;
-    private final Random random = new Xoroshiro128PlusPlusRandom(0);
-//    private long time = 0;
 
     public void applyToAnimated(String idStr, Consumer<FlagBuffer.Animated> f) {
         colorGetter.applyToAnimated(idStr, f);
@@ -113,7 +109,7 @@ public class PrideFlagManager extends SinglePreparationResourceReloader<ColorGet
                 var resource = manager.getResource(resourcePath);
                 if (resource.isEmpty()) throw new RuntimeException("failed to find resource");
 
-                var flagBuffer = getter.build(resource.get(), id, flagEntry);
+                var flagBuffer = getter.build(resource.get(), flagEntry);
                 if (flagBuffer == null) throw new RuntimeException("null buffer object");
                 var flagData = FlagData.of(flagEntry, flagBuffer, id);
 

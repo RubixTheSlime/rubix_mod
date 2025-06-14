@@ -18,6 +18,7 @@ import net.minecraft.util.Identifier;
 
 import java.util.concurrent.CompletableFuture;
 
+@SuppressWarnings("unused")
 public class RubixModDataGenerator implements DataGeneratorEntrypoint {
 
     @Override

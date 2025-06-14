@@ -1,4 +1,4 @@
-package io.github.rubixtheslime.rubix.gaygrass;
+package io.github.rubixtheslime.rubix.util;
 
 import net.minecraft.util.math.random.Random;
 

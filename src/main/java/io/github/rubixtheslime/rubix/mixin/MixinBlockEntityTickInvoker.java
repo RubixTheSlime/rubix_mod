@@ -13,10 +13,12 @@ public interface MixinBlockEntityTickInvoker extends RedfileTracker {
     @Shadow BlockPos getPos();
 
     @Override
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     default BlockPos getPosForRedfile() {
         return getPos().toImmutable();
     }
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     default RedfileTag getTagForRedfile() {
         return RedfileTags.TILE_ENTITY_TICK;

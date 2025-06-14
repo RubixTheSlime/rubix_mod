@@ -1,8 +1,5 @@
 package io.github.rubixtheslime.rubix.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;

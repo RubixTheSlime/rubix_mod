@@ -2,10 +2,8 @@ package io.github.rubixtheslime.rubix.mixin.block;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import io.github.rubixtheslime.rubix.redfile.RedfileTrackers;
 import net.minecraft.block.RedstoneTorchBlock;
-import net.minecraft.block.WallRedstoneTorchBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;

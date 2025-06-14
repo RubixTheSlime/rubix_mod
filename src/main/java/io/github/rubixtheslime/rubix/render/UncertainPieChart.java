@@ -9,7 +9,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.random.Random;
 import org.apache.commons.math3.special.Erf;
 import org.joml.Vector3f;
 
@@ -18,7 +17,7 @@ import java.util.*;
 import java.util.List;
 
 public class UncertainPieChart {
-    public static Identifier QUARTER_CIRCLE = Identifier.of(RubixMod.MOD_ID, "textures/misc/redfile_pie_chunk.png");
+    public static final Identifier PIE_CHUNK_TEXTURE = Identifier.of(RubixMod.MOD_ID, "textures/misc/redfile_pie_chunk.png");
     private static final Cache<List<GaussianEntry>, Map<Double, Vector3f>> SEGMENT_CACHE = Caffeine.newBuilder()
         .maximumSize(32)
         .build();
@@ -230,9 +229,6 @@ public class UncertainPieChart {
     }
 
     public record GaussianEntry(Color color, double mean, double stdDev) {
-        public double getSample(Random random) {
-            return random.nextGaussian() * stdDev + mean;
-        }
     }
 
 

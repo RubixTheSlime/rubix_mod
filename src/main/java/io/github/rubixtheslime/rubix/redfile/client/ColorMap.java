@@ -6,28 +6,12 @@ import io.github.rubixtheslime.rubix.render.XrayRenderLayer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.LightmapTextureManager;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.model.BakedQuad;
-import net.minecraft.client.render.model.BakedQuadFactory;
-import net.minecraft.client.render.model.ModelRotation;
-import net.minecraft.client.render.model.json.ModelElementFace;
-import net.minecraft.client.texture.*;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.AxisRotation;
 import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import org.joml.Vector3f;
 import org.joml.Vector3i;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.function.BiConsumer;
 
 @Environment(EnvType.CLIENT)
 public interface ColorMap {
@@ -62,33 +46,6 @@ public interface ColorMap {
         abstract T interpolate(T x1, T x2, float progress);
 
         abstract int convert(T x);
-    }
-
-    abstract class ArrayInterpolator<T, U> extends Interpolator<T[], U[]> {
-        private final T[] template;
-
-        protected ArrayInterpolator(U[][] points, T[][] ref, int offset, T[] template) {
-            super(points, ref, offset);
-            this.template = template;
-        }
-
-        abstract T prepare1(U input);
-
-        abstract T interpolate1(T x1, T x2, float progress);
-
-        @Override
-        T[] prepare(U[] input) {
-            return Arrays.stream(input).map(this::prepare1).toList().toArray(template);
-        }
-
-        @Override
-        T[] interpolate(T[] x1, T[] x2, float progress) {
-            var res = Arrays.copyOf(template, template.length);
-            for (int i = 0; i < res.length; ++i) {
-                res[i] = interpolate1(x1[i], x2[i], progress);
-            }
-            return res;
-        }
     }
 
     abstract class DoubleArrayInterpolator extends Interpolator<double[], double[]> {
@@ -216,15 +173,4 @@ public interface ColorMap {
 
     }
 
-//    class HSBInterpolate extends DoubleArrayInterpolator {
-//
-//        public HSBInterpolate(int offset, double[][] points) {
-//            super(offset, points);
-//        }
-//
-//        @Override
-//        int convert(double[] x) {
-//            return Color.HSBtoRGB((float) (x[0] * (1d/6)), (float) x[1], (float) x[2]);
-//        }
-//    }
 }

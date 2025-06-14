@@ -10,7 +10,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(Entity.class)
@@ -27,11 +26,13 @@ public abstract class MixinEntity implements RedfileTracker {
         RedfileManager.enter(entity);
     }
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     public BlockPos getPosForRedfile() {
         return blockPos.toImmutable();
     }
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     public RedfileTag getTagForRedfile() {
         return RedfileTags.ENTITY_TICK;

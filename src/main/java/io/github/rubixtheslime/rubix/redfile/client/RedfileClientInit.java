@@ -6,8 +6,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 
-import java.awt.*;
-
 @Environment(EnvType.CLIENT)
 public class RedfileClientInit {
     public static void init() {
@@ -35,7 +33,7 @@ public class RedfileClientInit {
         o.subscribeToMultishapeSColor(RedfileClientInit::dirtyColor);
     }
 
-    private static void dirtyColor(Object x) {
+    private static void dirtyColor(Object ignored) {
         var client = MinecraftClient.getInstance();
         ((IMixinMinecraftClient)client).rubix$getRedfileResultManager().markColorDirty();
     }

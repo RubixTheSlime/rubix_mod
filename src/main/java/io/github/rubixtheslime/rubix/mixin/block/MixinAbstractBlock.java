@@ -2,12 +2,10 @@ package io.github.rubixtheslime.rubix.mixin.block;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.world.ServerWorld;
@@ -15,19 +13,14 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
-import net.minecraft.world.WorldView;
 import net.minecraft.world.block.WireOrientation;
-import net.minecraft.world.tick.ScheduledTickView;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static io.github.rubixtheslime.rubix.redfile.RedfileTrackers.*;
 
@@ -36,9 +29,6 @@ public abstract class MixinAbstractBlock {
 
     @Mixin(AbstractBlock.AbstractBlockState.class)
     public static abstract class MixinAbstractBlockState {
-
-        @Shadow
-        public abstract Block getBlock();
 
         @Inject(method = "neighborUpdate", at = @At("HEAD"))
         public void neighborUpdateEnter(World world, BlockPos pos, Block sourceBlock, WireOrientation wireOrientation, boolean notify, CallbackInfo ci) {

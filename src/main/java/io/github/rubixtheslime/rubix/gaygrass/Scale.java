@@ -12,16 +12,18 @@ public abstract class Scale {
     private static final Pattern SCALE_POW_REGEX = Pattern.compile("pow\\s*(\\d*\\.\\d+|\\d+)");
 
     public static Scale of(String name) {
-        if (name.equals("exp")) return new ExpScale();
-        if (name.equals("exp2")) return new Exp2Scale();
-        if (name.equals("2exp")) return new DoubleExpScale();
-        if (name.equals("perexp")) return new PerExpScale();
         var matcher = SCALE_POW_REGEX.matcher(name);
         if (matcher.matches()) {
             double power = Double.parseDouble(matcher.group(1));
             return new PowScale(power);
         }
-        return null;
+        return switch (name) {
+            case "exp" -> new ExpScale();
+            case "exp2" -> new Exp2Scale();
+            case "2exp" -> new DoubleExpScale();
+            case "perexp" -> new PerExpScale();
+            default -> null;
+        };
     }
 
     private static abstract class Integrable extends Scale {
@@ -121,9 +123,6 @@ public abstract class Scale {
             return Math.pow(x, power * 2 + 1) / (power * 2 + 1);
         }
 
-        public double power() {
-            return power;
-        }
     }
 
     private static final class PerExpScale extends Integrable {

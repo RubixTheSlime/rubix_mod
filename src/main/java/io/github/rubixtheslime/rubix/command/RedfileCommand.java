@@ -17,7 +17,6 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockBox;
 
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -219,11 +218,18 @@ public class RedfileCommand {
                         defaultConditionBuilder.apply((long) FloatArgumentType.getFloat(context, name + "_length")),
                         isTrial
                     ).execute())
-                    .then(withEndCondition((s, context) ->
-                        ModEnumType.RedfileTimeUnitArgument.getUnit(context, name + "_unit").getEndCondition(FloatArgumentType.getFloat(context, name + "_length")),
+                    .then(withEndCondition(
+                        (s, context) -> {
+                            var unit = ModEnumType.RedfileTimeUnitArgument.getUnit(context, name + "_unit");
+                            if (isTrial && !unit.isTrialLength()) {
+                                context.getSource().sendFeedback(() -> Text.translatable("rubix.command.redfile.bad_trial_unit"), false);
+                                return null;
+                            }
+                            return unit.getEndCondition(FloatArgumentType.getFloat(context, name + "_length"));
+                        },
                         isTrial
                     )
-                        .afterEndCondition(argument(name + "_unit", ModEnumType.RedfileTimeUnitArgument.runUnit()), isTrial))
+                        .afterEndCondition(argument(name + "_unit", ModEnumType.RedfileTimeUnitArgument.unit()), isTrial))
                 )
                 .then(literal("signal")
                     .executes(withEndCondition((s, context) ->
@@ -281,11 +287,13 @@ public class RedfileCommand {
         private Command<ServerCommandSource> execute() {
             return context -> {
                 var box = boxFunction.get(this, context);
+                var trialEndCondition = trialEndConditionFunction.get(this, context);
+                if (trialEndCondition == null) return 0;
 
                 boolean success = RedfileManager.tryStart(
                     box,
                     runEndConditionFunction.get(this, context),
-                    trialEndConditionFunction.get(this, context),
+                    trialEndCondition,
                     collectorFunction.get(this, context),
                     ModCommands.tryOr(true, () -> BoolArgumentType.getBool(context, "do_load")) && box != null,
                     ModCommands.tryOr(true, () -> BoolArgumentType.getBool(context, "do_sprint")),
@@ -298,11 +306,5 @@ public class RedfileCommand {
         }
 
     }
-
-    private record Getters(
-        Function<CommandContext<ServerCommandSource>, BlockBox> boxFunction,
-        Function<CommandContext<ServerCommandSource>, RedfileEndCondition.Builder> runEndConditionFunction,
-        Function<CommandContext<ServerCommandSource>, RedfileEndCondition.Builder> trialEndConditionFunction
-    ) {}
 
 }

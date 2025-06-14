@@ -2,23 +2,17 @@ package io.github.rubixtheslime.rubix.client;
 
 import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.RDebug;
-import io.github.rubixtheslime.rubix.RubixConfig;
 import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 
 public class ModKeyBinds {
@@ -68,6 +62,7 @@ public class ModKeyBinds {
         }
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            assert client.player != null;
             for (var data : debugIndexes) {
                 int i = data.index;
                 while (data.keyBinding.wasPressed()){

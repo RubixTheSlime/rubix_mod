@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class TaggedStats {
     private final Map<RedfileTag, MeanAndVar> data;
@@ -26,34 +27,32 @@ public class TaggedStats {
         return new TaggedStats(data);
     }
 
-    public static TaggedStats unpack(int[] data, boolean sync, List<RedfileTag> translation) {
+    private static TaggedStats unpack(int[] data, boolean sync, Function<Integer, RedfileTag> getter) {
         var res = create(sync);
         if (data == null) return res;
+        var unfamiliarAcc = new MoreMath.MeanVarAcc();
         for (int ptr = 0; ptr < data.length; ptr += 3) {
-            var tag = ModRegistries.REDFILE_TAG.get(data[ptr]);
-            res.data.merge(
-                tag == null ? RedfileTags.UNFAMILIAR : tag,
-                MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32),
-                (a, b) -> {
-                    var res1 = a.copy();
-                    res1.add(b);
-                    return res1;
-                }
-            );
+            var tag = getter.apply(data[ptr]);
+            var mv = MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32);
+            if (tag == null || tag == RedfileTags.UNFAMILIAR) {
+                unfamiliarAcc.add(mv);
+            } else {
+                res.data.put(tag, mv);
+            }
+        }
+        var unfamiliarMv = unfamiliarAcc.finish();
+        if (!unfamiliarMv.isEmpty()) {
+            res.data.put(RedfileTags.UNFAMILIAR, unfamiliarMv);
         }
         return res;
     }
 
+    public static TaggedStats unpack(int[] data, boolean sync, List<RedfileTag> translation) {
+        return unpack(data, sync, translation::get);
+    }
+
     public static TaggedStats unpack(int[] data, boolean sync) {
-        var res = create(sync);
-        if (data == null) return res;
-        for (int ptr = 0; ptr < data.length; ptr += 3) {
-            res.data.put(
-                ModRegistries.REDFILE_TAG.get(data[ptr]),
-                MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32)
-            );
-        }
-        return res;
+        return unpack(data, sync, ModRegistries.REDFILE_TAG::get);
     }
 
     public int[] pack() {
@@ -107,8 +106,8 @@ public class TaggedStats {
     }
 
     public record Display(MeanAndVar sum, Map<RedfileTag, MeanAndVar> data, TaggedStats stats) {
-        public boolean isOnlyUntagged() {
-            return data().size() == 1 && data().containsKey(RedfileTags.UNTAGGED);
+        public boolean shouldBreakDown() {
+            return data().size() != 1 || !data().containsKey(RedfileTags.UNTAGGED);
         }
 
         public boolean isEmpty() {

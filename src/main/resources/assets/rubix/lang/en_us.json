@@ -146,6 +146,7 @@
   "rubix.command.redfile.compare.control.set": "Control set for %s",
   "rubix.command.redfile.compare.control.none": "Error: no control set for %s",
   "rubix.command.redfile.compare.result": "Estimated difference: %s\nAdvanced: μ = %s, σ² = %s, p = %s",
+  "rubix.command.redfile.bad_trial_unit": "Cannot use trial count as unit for trial end condition",
   "rubix.command.redfile.with_tag": "%s: %s",
 
   "rubix.command.redfilec.no_exist_tag": "Unrecognized tag: %s",

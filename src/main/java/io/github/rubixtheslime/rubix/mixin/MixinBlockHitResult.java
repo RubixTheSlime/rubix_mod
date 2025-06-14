@@ -13,11 +13,13 @@ import org.spongepowered.asm.mixin.Shadow;
 public class MixinBlockHitResult implements RedfileTracker {
     @Shadow @Final private BlockPos blockPos;
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     public BlockPos getPosForRedfile() {
         return blockPos;
     }
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     public RedfileTag getTagForRedfile() {
         return RedfileTags.BLOCK_INTERACT;

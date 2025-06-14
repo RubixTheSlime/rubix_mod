@@ -1,13 +1,10 @@
 package io.github.rubixtheslime.rubix.command.client;
 
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.suggestion.Suggestions;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
 import io.github.rubixtheslime.rubix.gaygrass.FlagBuffer;
-import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.CommandSource;

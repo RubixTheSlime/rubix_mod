@@ -1,12 +1,12 @@
 package io.github.rubixtheslime.rubix;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.github.rubixtheslime.rubix.RubixConfig.DebugOptions;
 import org.jetbrains.annotations.NotNull;
 
+@SuppressWarnings("unused")
 public class RDebug {
     private static final DebugOptions OPTIONS = RubixMod.CONFIG.debugOptions;
 

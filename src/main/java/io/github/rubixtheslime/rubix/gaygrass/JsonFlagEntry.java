@@ -12,21 +12,21 @@ import java.util.Map;
 
 public final class JsonFlagEntry {
     private static final Map<String, Key<?>> SIMPLE_KEYS = new HashMap<>();
-    public static String GLOBAL_KEY = "*";
-    public static Key<Double> WEIGHT = ofSimple(Double.class, "weight");
-    public static Key<Double> DENSITY = ofSimple(Double.class, "density");
-    public static Key<Double> MIN_SIZE = ofSimple(Double.class, "min_size");
-    public static Key<Double> MAX_SIZE = ofSimple(Double.class, "max_size");
-    public static Key<Double> OPACITY = ofSimple(Double.class, "opacity");
-    public static Key<Double> ROTATION_DAMP = ofSimple(Double.class, "rotate_damp");
-    public static Key<Double> RANDOM_COLOR_ALPHA = ofSimple(Double.class, "random_color");
-    public static Key<Long> PAPRIKA = ofSimple(Long.class, "paprika");
-    public static Key<Boolean> ANTIALIAS = ofSimple(Boolean.class, "antialias");
-    public static Key<Boolean> MODIFY = ofSimple(Boolean.class, "modify");
-    public static Key<String> FORMAT = ofSimple(String.class, "format");
-    public static Key<String> SCALE = ofSimple(String.class, "scale");
-    public static Key<String> ID = ofSimple(String.class, "id");
-    public static Key<String> RESOURCE = ofSimple(String.class, "resource");
+    public static final String GLOBAL_KEY = "*";
+    public static final Key<Double> WEIGHT = ofSimple(Double.class, "weight");
+    public static final Key<Double> DENSITY = ofSimple(Double.class, "density");
+    public static final Key<Double> MIN_SIZE = ofSimple(Double.class, "min_size");
+    public static final Key<Double> MAX_SIZE = ofSimple(Double.class, "max_size");
+    public static final Key<Double> OPACITY = ofSimple(Double.class, "opacity");
+    public static final Key<Double> ROTATION_DAMP = ofSimple(Double.class, "rotate_damp");
+    public static final Key<Double> RANDOM_COLOR_ALPHA = ofSimple(Double.class, "random_color");
+    public static final Key<Long> PAPRIKA = ofSimple(Long.class, "paprika");
+    public static final Key<Boolean> ANTIALIAS = ofSimple(Boolean.class, "antialias");
+    public static final Key<Boolean> MODIFY = ofSimple(Boolean.class, "modify");
+    public static final Key<String> FORMAT = ofSimple(String.class, "format");
+    public static final Key<String> SCALE = ofSimple(String.class, "scale");
+    public static final Key<String> ID = ofSimple(String.class, "id");
+    public static final Key<String> RESOURCE = ofSimple(String.class, "resource");
 //    public static Key<String> RESOURCE_NAMESPACE = new Key<>(String.class, "resource_namespace");
 
     private static <T> Key<T> ofSimple(Class<T> cls, String name) {

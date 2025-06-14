@@ -5,7 +5,6 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 
 import java.util.List;
-import java.util.function.Function;
 
 public interface RedfileTracker {
     Empty EMPTY = new RedfileTracker.Empty();
@@ -114,17 +113,5 @@ public interface RedfileTracker {
         }
 
     }
-
-//    class RandomTrackedList implements RedfileTracked {
-//        private final List<?> list;
-//
-//        public RandomTrackedList(List<?> list) {
-//            this.list = list;
-//        }
-//
-//        @Override
-//        public BlockPos rubix$getPosForRedfile() {
-//        }
-//    }
 
 }

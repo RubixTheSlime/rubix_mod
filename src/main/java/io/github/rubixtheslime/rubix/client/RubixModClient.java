@@ -27,10 +27,6 @@ public class RubixModClient implements ClientModInitializer {
             });
             RubixMod.RUBIX_MOD_CHANNEL.registerClientbound(RedfileTranslationPacket.class, (message, access) -> {
                 var client = MinecraftClient.getInstance();
-//                client.getServer().
-//                client.getServer()
-//                client.getSessionService().joinServer();
-//                client.getServer().getSavePath(WorldSavePath.ROOT).getParent().getFileName().toString();
                 ((IMixinMinecraftClient) client).rubix$getRedfileResultManager().setTranslation(message);
             });
 

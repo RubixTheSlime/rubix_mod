@@ -70,7 +70,4 @@ public class Sampler {
         return totalSamples;
     }
 
-    public Thread getPollThread() {
-        return pollThread;
-    }
 }

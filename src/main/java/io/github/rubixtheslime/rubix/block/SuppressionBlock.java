@@ -3,14 +3,10 @@ package io.github.rubixtheslime.rubix.block;
 import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.WorldAccess;
 import net.minecraft.world.WorldView;
 
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public abstract class SuppressionBlock extends Block {

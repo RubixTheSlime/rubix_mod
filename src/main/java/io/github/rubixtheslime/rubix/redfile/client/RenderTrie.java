@@ -208,6 +208,7 @@ public class RenderTrie {
 
     private static boolean lineIntersectsRect(double dirX, double dirY, double minX, double minY, double maxX, double maxY) {
         if (dirX == 0 && dirY == 0) return minX <= 0 && minY <= 0 && maxX >= 0 && maxY >= 0;
+        // parameters are in the right order, doing a rotation
         Vector2d normal = new Vector2d(dirY, -dirX);
         int mask = lineIntersectsRectSub(normal, minX, minY) | lineIntersectsRectSub(normal, maxX, maxY);
         if (mask == 3) return true;
@@ -224,5 +225,4 @@ public class RenderTrie {
         return new Vector3i((index & 1) << (depth - 1), ((index >> 1) & 1) << (depth - 1), ((index >> 2) & 1) << (depth - 1));
     }
 
-    public record BlockHeatRenderEntry(int x, int y, int z, int color) {}
 }

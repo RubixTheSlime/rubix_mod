@@ -8,7 +8,7 @@ public enum ColorMapMode implements StringIdentifiable {
 
     private final String name;
 
-    private ColorMapMode(String name) {
+    ColorMapMode(String name) {
         this.name = name;
     }
 

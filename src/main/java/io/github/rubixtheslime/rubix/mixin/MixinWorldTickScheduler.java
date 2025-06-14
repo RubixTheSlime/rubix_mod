@@ -6,14 +6,11 @@ import com.llamalad7.mixinextras.sugar.Local;
 import io.github.rubixtheslime.rubix.block.ModBlocks;
 import io.github.rubixtheslime.rubix.imixin.IMixinWorldTickScheduler;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.tick.ChunkTickScheduler;
 import net.minecraft.world.tick.OrderedTick;
 import net.minecraft.world.tick.WorldTickScheduler;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -23,9 +20,6 @@ import java.util.function.BiConsumer;
 
 @Mixin(WorldTickScheduler.class)
 public abstract class MixinWorldTickScheduler<T> implements IMixinWorldTickScheduler {
-    @Shadow public abstract void tick(long time, int maxTicks, BiConsumer<BlockPos, T> ticker);
-
-    @Shadow protected abstract void tick(BiConsumer<BlockPos, T> ticker);
 
     @Inject(method = "addTickableTicks(JI)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/WorldTickScheduler;addTickableTick(Lnet/minecraft/world/tick/OrderedTick;)V"))
     void addTickableTicks1Enter(long time, int maxTicks, CallbackInfo ci, @Local OrderedTick<?> orderedTick) {

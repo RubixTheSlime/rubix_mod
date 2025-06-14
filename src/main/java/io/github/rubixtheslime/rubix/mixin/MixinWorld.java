@@ -91,6 +91,7 @@ public abstract class MixinWorld {
     @WrapMethod(method = "tickEntity")
     <T extends Entity> void tickEntityWrap(Consumer<T> tickConsumer, T entity, Operation<Void> original) {
         if (ModBlocks.ENTITY_SUPPRESSION_BLOCK.isAround(() -> (WorldView) this, entity::getBlockPos) && !entity.isPlayer()) return;
+        // identifies as error, this is correct
         original.call(tickConsumer, entity);
     }
 

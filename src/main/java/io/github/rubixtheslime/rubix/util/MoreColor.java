@@ -1,7 +1,6 @@
 package io.github.rubixtheslime.rubix.util;
 
 import net.minecraft.util.math.ColorHelper;
-import org.lwjgl.opengl.GL32;
 
 public abstract class MoreColor {
 
@@ -64,10 +63,6 @@ public abstract class MoreColor {
             return (int) Math.ceil(value * (1 << 23));
         }
 
-//        public void shade(int value) {
-//            shadePrecomped(precompShade(value));
-//        }
-
         public void shadePrecomped(int k) {
             finalR = midR * k >>> 23;
             finalG = midG * k >>> 23;
@@ -79,60 +74,5 @@ public abstract class MoreColor {
         }
 
     }
-
-//    public static class QuickRgbBlender {
-//        private final int[] topPartsScaled = new int[3];
-//        private final int rbScaled;
-//        private final int gScaled;
-//        private final int bottomAlphaScaled;
-//
-//
-//        private QuickRgbBlender(int topRedScaled, int topGreenScaled, int topBlueScaled, int bottomAlphaScaled) {
-//            topPartsScaled[0] = topRedScaled;
-//            topPartsScaled[1] = topGreenScaled;
-//            topPartsScaled[2] = topBlueScaled;
-//            rbScaled = topRedScaled << 24 | topBlueScaled << 8;
-//            gScaled = topGreenScaled << 8;
-//            this.bottomAlphaScaled = bottomAlphaScaled;
-//        }
-//
-//        public static QuickRgbBlender of(int argb) {
-//            int topAlphaScale = ((alpha << 16) - 1) / 255 + 1;
-//            return new QuickRgbBlender(
-//                red * topAlphaScale,
-//                green * topAlphaScale,
-//                blue * topAlphaScale,
-//                (((255 - alpha) << 16) - 1) / 255 + 1
-//            );
-//        }
-//
-//        public static QuickRgbBlender of(int argb) {
-//            return of(ColorHelper.getRed(argb), ColorHelper.getGreen(argb), ColorHelper.getBlue(argb), ColorHelper.getAlpha(argb));
-//        }
-//
-//        private int apply(int bottom, int top) {
-//            return (bottom * bottomAlphaScaled + top) >> 16;
-//        }
-//
-//        public int blendArgbToRgba(int argb) {
-//            int a = argb >> 24;
-//            int r = apply((base >> 16) & 0xff, rbScaled) << 16;
-//            int g = apply(base & 0xff00, gScaled) & 0xff00;
-//            int b = apply(base & 0xff, rbScaled);
-//            return a | r | g | b;
-//        }
-//
-//        public void blend(int[] parts) {
-//            for (int i = 0; i < 3; i++) {
-//                parts[i] = apply(parts[i], topPartsScaled[i]);
-//            }
-//        }
-//
-//        public void blend(byte[] parts) {
-//            for (int i = 0; i < 3; i++) {
-//                parts[i] = (byte) apply(parts[i], topPartsScaled[i]);
-//            }
-//        }
-//    }
 
 }

@@ -38,11 +38,13 @@ public class MixinServerChunkLoadingManager {
 
         @Shadow @Final public Entity entity;
 
+        @SuppressWarnings("AddedMixinMembersNamePattern")
         @Override
         public BlockPos getPosForRedfile() {
             return entity.getBlockPos().toImmutable();
         }
 
+        @SuppressWarnings("AddedMixinMembersNamePattern")
         @Override
         public RedfileTag getTagForRedfile() {
             return RedfileTags.ENTITY_MOVEMENT;

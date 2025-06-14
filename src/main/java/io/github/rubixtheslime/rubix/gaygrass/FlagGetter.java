@@ -2,6 +2,7 @@ package io.github.rubixtheslime.rubix.gaygrass;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.rubixtheslime.rubix.util.WeightedRandomGetter;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.minecraft.util.math.ColorHelper;
 import net.minecraft.util.math.noise.PerlinNoiseSampler;
@@ -189,17 +190,6 @@ public class FlagGetter {
             return totalAreaWeight / totalWeight;
         }
 
-        public static double getExpectedCount(Collection<Builder> builders, double density, int level) {
-            double totalWeight = 0;
-            double totalAreaWeight = 0;
-            for (var builder : builders) {
-                totalWeight += builder.getWeight();
-                totalAreaWeight += builder.avgArea() * builder.getWeight();
-            }
-            double invAvg = totalWeight / totalAreaWeight;
-            return density * invAvg * (1L << (level * 2));
-        }
-
         private void splitInto(Map<Entry, Double> entries, int level) {
             double splitPoint = flagData.scale.inv(1L << level);
 
@@ -242,9 +232,6 @@ public class FlagGetter {
             return new Builder(flagData, transform, flagEntry);
         }
 
-        public FlagData getData() {
-            return flagData;
-        }
     }
 
     private static class Entry {

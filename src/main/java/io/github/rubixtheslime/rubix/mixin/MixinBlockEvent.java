@@ -14,11 +14,13 @@ public class MixinBlockEvent implements RedfileTracker {
 
     @Shadow @Final private BlockPos pos;
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     public BlockPos getPosForRedfile() {
         return pos.toImmutable();
     }
 
+    @SuppressWarnings("AddedMixinMembersNamePattern")
     @Override
     public RedfileTag getTagForRedfile() {
         return RedfileTags.BLOCK_EVENT;

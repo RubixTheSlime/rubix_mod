@@ -1,6 +1,5 @@
 package io.github.rubixtheslime.rubix.block;
 
-import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.RubixMod;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.block.AbstractBlock;

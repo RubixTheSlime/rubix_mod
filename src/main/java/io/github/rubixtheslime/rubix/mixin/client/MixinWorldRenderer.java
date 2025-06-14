@@ -6,7 +6,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.RubixMod;
 import io.github.rubixtheslime.rubix.client.RubixModClient;
-import io.github.rubixtheslime.rubix.gaygrass.PrideFlagManager;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinChunkBuilder;
 import io.github.rubixtheslime.rubix.imixin.client.IMixinMinecraftClient;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -27,7 +26,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Mixin(WorldRenderer.class)

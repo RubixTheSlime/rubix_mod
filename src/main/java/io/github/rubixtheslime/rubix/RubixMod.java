@@ -22,11 +22,11 @@ public class RubixMod implements ModInitializer {
         ModCommands.init();
         ModBlocks.initialize();
         ModItems.initialize();
+        LOGGER.info("Trans rights are human rights!");
         if (EnabledMods.REDFILE) {
             RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileResultPacket.class);
             RUBIX_MOD_CHANNEL.registerClientboundDeferred(RedfileTranslationPacket.class);
         }
-        LOGGER.info("lithium loaded: {}", EnabledMods.EX_LITHIUM);
     }
 
 }

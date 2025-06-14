@@ -1,9 +1,6 @@
 package io.github.rubixtheslime.rubix.render;
 
-import io.github.rubixtheslime.rubix.util.MoreColor;
 import net.minecraft.util.math.ColorHelper;
-
-import java.util.function.UnaryOperator;
 
 public enum ColorMode {
     RED_GREEN_BLUE(3, 0, 1, 2) {

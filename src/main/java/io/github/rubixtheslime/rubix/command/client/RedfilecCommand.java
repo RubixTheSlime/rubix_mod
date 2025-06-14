@@ -5,7 +5,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.github.rubixtheslime.rubix.ModRegistries;
@@ -22,7 +21,6 @@ import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.BlockStateArgument;
 import net.minecraft.command.argument.BlockStateArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
-import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
@@ -31,7 +29,6 @@ import net.minecraft.world.World;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
-import java.util.function.Consumer;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
 
@@ -72,25 +69,19 @@ public class RedfilecCommand {
                 .then(literal("show")
                     .then(literal("all").executes(ofManager(((manager, world) -> manager.setAllActive(world, true)))))
                     .then(argument("index", IntegerArgumentType.integer())
-                        .executes(context -> {
-                            return getManager(context).setActive(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index"), true) ? 1 : 0;
-                        })
+                        .executes(context -> getManager(context).setActive(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index"), true) ? 1 : 0)
                     )
                 )
                 .then(literal("hide")
                     .then(literal("all").executes(ofManager(((manager, world) -> manager.setAllActive(world, false)))))
                     .then(argument("index", IntegerArgumentType.integer())
-                        .executes(context -> {
-                            return getManager(context).setActive(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index"), false) ? 1 : 0;
-                        })
+                        .executes(context -> getManager(context).setActive(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index"), false) ? 1 : 0)
                     )
                 )
                 .then(literal("drop")
                     .then(literal("all").executes(ofManager(RedfileResultManager::clearResults)))
                     .then(argument("index", IntegerArgumentType.integer())
-                        .executes(context -> {
-                            return getManager(context).drop(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index")) ? 1 : 0;
-                        })
+                        .executes(context -> getManager(context).drop(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index")) ? 1 : 0)
                     )
                 )
             )
@@ -111,9 +102,7 @@ public class RedfilecCommand {
                 )
                 .then(literal("run")
                     .then(argument("index", IntegerArgumentType.integer())
-                        .executes(context -> {
-                            return getManager(context).selectAll(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index")) ? 1 : 0;
-                        })
+                        .executes(context -> getManager(context).selectAll(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "index")) ? 1 : 0)
                     )
                 )
             )
@@ -153,7 +142,7 @@ public class RedfilecCommand {
 
     }
 
-    static <S> CompletableFuture<Suggestions> getTagSuggestions(final CommandContext<S> context, final SuggestionsBuilder builder) throws CommandSyntaxException {
+    static <S> CompletableFuture<Suggestions> getTagSuggestions(final CommandContext<S> context, final SuggestionsBuilder builder) {
            return CommandSource.suggestMatching(ModRegistries.REDFILE_TAG.stream().map(x -> x.id().toString()).toList().toArray(new String[0]), builder);
     }
 

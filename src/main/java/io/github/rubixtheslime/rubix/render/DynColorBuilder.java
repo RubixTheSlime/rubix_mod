@@ -223,7 +223,7 @@ public class DynColorBuilder implements VertexConsumer {
         private final int x;
         private final int z;
         private final List<BaseColorEntry> data;
-        private int lastColor = 0;
+        private final int lastColor = 0;
 
         public ColumnEntry(int x, int z, List<BaseColorEntry> data) {
             this.x = x;

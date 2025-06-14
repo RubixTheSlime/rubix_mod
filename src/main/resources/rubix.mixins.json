@@ -12,7 +12,6 @@
     "MixinDirection",
     "MixinDirection$Type",
     "MixinEntity",
-    "MixinMinecraftServer",
     "MixinNeighborUpdater",
     "MixinNetworkThreadUtils",
     "MixinOrderedTick",

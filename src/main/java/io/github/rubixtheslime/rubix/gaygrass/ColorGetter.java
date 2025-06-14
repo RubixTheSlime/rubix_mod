@@ -17,10 +17,8 @@ public abstract class ColorGetter {
     public static final int BASE_LEVEL = 1 << BASE_LEVEL_INDEX;
     public static final long DOUBLE_BASE_LEVEL = 1L << (BASE_LEVEL_INDEX * 2);
     public static final int BASE_LEVEL_MASK = BASE_LEVEL - 1;
-    private final Map<Identifier, FlagBuffer.Animated> animatedBuffers;
 
-    protected ColorGetter(Map<Identifier, FlagBuffer.Animated> animatedBuffers) {
-        this.animatedBuffers = animatedBuffers;
+    protected ColorGetter() {
     }
 
     public abstract int getColor(int x, int z);
@@ -30,6 +28,8 @@ public abstract class ColorGetter {
     public abstract void invalidateTileCache();
 
     public abstract double getRotate(double x, double y, double damp);
+
+    protected abstract Map<Identifier, FlagBuffer.Animated> getAnimatedBuffers();
 
     public static ColorGetter ofEmpty() {
         return new Empty();
@@ -55,21 +55,20 @@ public abstract class ColorGetter {
 
     public void applyToAnimated(String idStr, Consumer<FlagBuffer.Animated> f) {
         if (Objects.equals(idStr, "*")) {
-            animatedBuffers.values().forEach(f);
+            getAnimatedBuffers().values().forEach(f);
             return;
         }
-        var buffer = animatedBuffers.get(Identifier.of(idStr));
+        var buffer = getAnimatedBuffers().get(Identifier.of(idStr));
         if (buffer != null) f.accept(buffer);
     }
 
     public Stream<Identifier> getAnimatedNames() {
-        return animatedBuffers.keySet()
-            .stream();
+        return getAnimatedBuffers().keySet().stream();
     }
 
     private static final class Empty extends ColorGetter {
         private Empty() {
-            super(Map.of());
+            super();
         }
 
         @Override
@@ -96,11 +95,17 @@ public abstract class ColorGetter {
         }
 
         @Override
+        protected Map<Identifier, FlagBuffer.Animated> getAnimatedBuffers() {
+            return Map.of();
+        }
+
+        @Override
         public void setBiomeSeed(long biomeSeed) {
         }
     }
 
     private static final class Actual extends ColorGetter {
+        private final Map<Identifier, FlagBuffer.Animated> animatedBuffers;
         private final FlagGetter flagGetter;
 
         private final Cache<Long, BitSet> isAnimatedCache = EnabledMods.GAY_GRASS_VIDEO ? Caffeine.newBuilder()
@@ -111,8 +116,9 @@ public abstract class ColorGetter {
             .build();
 
         private Actual(FlagGetter flagGetter, Map<Identifier, FlagBuffer.Animated> animatedBuffers) {
-            super(animatedBuffers);
+            super();
             this.flagGetter = flagGetter;
+            this.animatedBuffers = animatedBuffers;
         }
 
         private BufferedImage getImage(int tileX, int tileZ, FlagInstance.AnimationKey animationKey) {
@@ -149,6 +155,7 @@ public abstract class ColorGetter {
                 }
                 return res;
             });
+            assert bitset != null;
             return bitset.get((x & BASE_LEVEL_MASK) << BASE_LEVEL_INDEX | z & BASE_LEVEL_MASK);
 
         }
@@ -168,6 +175,11 @@ public abstract class ColorGetter {
         @Override
         public double getRotate(double x, double y, double damp) {
             return flagGetter.getPerlinRotate(x, y, damp);
+        }
+
+        @Override
+        protected Map<Identifier, FlagBuffer.Animated> getAnimatedBuffers() {
+            return animatedBuffers;
         }
 
         @Override

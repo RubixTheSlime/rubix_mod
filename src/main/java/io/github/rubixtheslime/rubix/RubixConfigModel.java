@@ -5,6 +5,7 @@ import io.github.rubixtheslime.rubix.redfile.UncertaintyType;
 import io.github.rubixtheslime.rubix.render.ColorMode;
 import io.wispforest.owo.config.annotation.*;
 
+@SuppressWarnings("unused")
 @Modmenu(modId = "rubix")
 @Config(name = "rubix", wrapperName = "RubixConfig")
 public class RubixConfigModel {
@@ -131,17 +132,6 @@ public class RubixConfigModel {
         @Hook public String debugString7 = "";
         @Hook public String debugString8 = "";
         @Hook public String debugString9 = "";
-
-//        public String debugNbt0 = false;
-//        public String debugNbt1 = false;
-//        public String debugNbt2 = false;
-//        public String debugNbt3 = false;
-//        public String debugNbt4 = false;
-//        public String debugNbt5 = false;
-//        public String debugNbt6 = false;
-//        public String debugNbt7 = false;
-//        public String debugNbt8 = false;
-//        public String debugNbt9 = false;
 
     }
 

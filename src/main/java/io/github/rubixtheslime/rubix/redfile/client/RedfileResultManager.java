@@ -182,6 +182,84 @@ public class RedfileResultManager {
         ModRenderLayer.HIGHLIGHT_LINE.draw(buffer);
     }
 
+    private void ensureTileRenderTrie(WorldEntry worldEntry) {
+        if (tileRenderTrie != null) return;
+        Map<Long, Float> amounts = new Long2FloatOpenHashMap();
+        worldEntry.streamResults()
+            .filter(RedfileResult::isActive)
+            .forEach(display -> display.stream().forEach(tile -> {
+                if (!worldEntry.checkLayer(tile.pos.asLong())) return;
+                double value = tile.getValue();
+                if (value == 0) return;
+                float logNanos = (float) Math.log(value) * (1f / (float) Math.log(10)) + 6f;
+                amounts.merge(tile.pos.asLong(), logNanos, Math::max);
+            }));
+        Map<Long, Integer> colors = new Long2IntOpenHashMap();
+        amounts.forEach((pos, logNanos) -> colors.put(pos, colorMap.getColor(logNanos) | Integer.MIN_VALUE));
+        tileRenderTrie = new RenderTrie(colors);
+    }
+
+    private void ensureLineRenderTrie(WorldEntry worldEntry) {
+        if (lineRenderTrie != null) return;
+        Map<Long, Integer> codes = new Long2IntOpenHashMap();
+        worldEntry.selected.forEach(blockPosLong -> {
+            if (!worldEntry.checkLayer(blockPosLong)) return;
+            codes.merge(blockPosLong, 3, (a, b) -> a ^ b);
+            codes.merge(BlockPos.offset(blockPosLong, Direction.SOUTH), 1, (a, b) -> a ^ b);
+            codes.merge(BlockPos.offset(blockPosLong, Direction.EAST), 2, (a, b) -> a ^ b);
+        });
+        lineRenderTrie = new RenderTrie(codes);
+    }
+
+    private void ensureColorMap() {
+        if (colorMap != null) return;
+
+        var o = RubixMod.CONFIG.redfileOptions;
+        colorMap = switch (o.colorMapMode()) {
+            case RGB_GRADIENT -> new ColorMap.RGBInterpolate(-3, getColors(GRADIENT_GETTERS));
+            case MULTISHAPE -> new ColorMap.MultiShapeColorMap(getColors(MULTISHAPE_GETTERS));
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static final Supplier<String>[] GRADIENT_GETTERS = new Supplier[] {
+        CONFIG::gradientP1Color,
+        CONFIG::gradientP10Color,
+        CONFIG::gradientP100Color,
+        CONFIG::gradientN1Color,
+        CONFIG::gradientN10Color,
+        CONFIG::gradientN100Color,
+        CONFIG::gradientU1Color,
+        CONFIG::gradientU10Color,
+        CONFIG::gradientU100Color,
+        CONFIG::gradientM1Color,
+        CONFIG::gradientM10Color,
+        CONFIG::gradientM100Color,
+        CONFIG::gradientS1Color
+    };
+
+    @SuppressWarnings("unchecked")
+    private static final Supplier<String>[] MULTISHAPE_GETTERS = new Supplier[]{
+        CONFIG::multishapePColor,
+        CONFIG::multishapeNColor,
+        CONFIG::multishapeUColor,
+        CONFIG::multishapeMColor,
+        CONFIG::multishapeSColor
+    };
+
+    private static int[] getColors(Supplier<String>[] getters) {
+        var colors = new int[getters.length];
+        for (int i = 0; i < getters.length; i++) {
+            Color c = Color.GRAY;
+            try {
+                c = Color.decode("#" + getters[i].get());
+            } catch (NumberFormatException ignored) {
+            }
+            colors[i] = c.getRGB();
+        }
+        return colors;
+    }
+
     public TaggedStats.Display getSumOfSelected(World world) {
         if (sumOfSelected == null) {
             var worldEntry = get(world);
@@ -247,86 +325,6 @@ public class RedfileResultManager {
     public void markColorDirty() {
         colorMap = null;
         tileRenderTrie = null;
-    }
-
-    private void ensureTileRenderTrie(WorldEntry worldEntry) {
-        if (tileRenderTrie != null) return;
-        Map<Long, Float> amounts = new Long2FloatOpenHashMap();
-        worldEntry.streamResults()
-            .filter(RedfileResult::isActive)
-            .forEach(display -> display.stream().forEach(tile -> {
-                if (!worldEntry.checkLayer(tile.pos.asLong())) return;
-                double value = tile.getValue();
-                if (value == 0) return;
-                float logNanos = (float) Math.log(value) * (1f / (float) Math.log(10)) + 6f;
-                amounts.merge(tile.pos.asLong(), logNanos, Math::max);
-            }));
-        Map<Long, Integer> colors = new Long2IntOpenHashMap();
-        amounts.forEach((pos, logNanos) -> colors.put(pos, colorMap.getColor(logNanos) | Integer.MIN_VALUE));
-        tileRenderTrie = new RenderTrie(colors);
-    }
-
-    private void ensureLineRenderTrie(WorldEntry worldEntry) {
-        if (lineRenderTrie != null) return;
-        Map<Long, Integer> codes = new Long2IntOpenHashMap();
-        worldEntry.selected.forEach(blockPosLong -> {
-            if (!worldEntry.checkLayer(blockPosLong)) return;
-            codes.merge(blockPosLong, 3, (a, b) -> a ^ b);
-            codes.merge(BlockPos.offset(blockPosLong, Direction.SOUTH), 1, (a, b) -> a ^ b);
-            codes.merge(BlockPos.offset(blockPosLong, Direction.EAST), 2, (a, b) -> a ^ b);
-        });
-        lineRenderTrie = new RenderTrie(codes);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static final Supplier<String>[] GRADIENT_GETTERS = new Supplier[] {
-        CONFIG::gradientP1Color,
-        CONFIG::gradientP10Color,
-        CONFIG::gradientP100Color,
-        CONFIG::gradientN1Color,
-        CONFIG::gradientN10Color,
-        CONFIG::gradientN100Color,
-        CONFIG::gradientU1Color,
-        CONFIG::gradientU10Color,
-        CONFIG::gradientU100Color,
-        CONFIG::gradientM1Color,
-        CONFIG::gradientM10Color,
-        CONFIG::gradientM100Color,
-        CONFIG::gradientS1Color
-    };
-
-    @SuppressWarnings("unchecked")
-    private static final Supplier<String>[] MULTISHAPE_GETTERS = new Supplier[]{
-        CONFIG::multishapePColor,
-        CONFIG::multishapeNColor,
-        CONFIG::multishapeUColor,
-        CONFIG::multishapeMColor,
-        CONFIG::multishapeSColor
-    };
-
-    private static int[] getColors(Supplier<String>[] getters) {
-        var colors = new int[getters.length];
-        for (int i = 0; i < getters.length; i++) {
-            Color c = Color.GRAY;
-            try {
-                c = Color.decode("#" + getters[i].get());
-            } catch (NumberFormatException ignored) {
-            }
-            colors[i] = c.getRGB();
-        }
-        return colors;
-    }
-
-    private void ensureColorMap() {
-        if (colorMap != null) return;
-
-        var o = RubixMod.CONFIG.redfileOptions;
-        colorMap = switch (o.colorMapMode()) {
-            case RGB_GRADIENT -> new ColorMap.RGBInterpolate(-3, getColors(GRADIENT_GETTERS));
-            case MULTISHAPE -> new ColorMap.MultiShapeColorMap(getColors(MULTISHAPE_GETTERS));
-        };
-
-
     }
 
     public boolean drop(World world, int index) {
@@ -499,13 +497,6 @@ public class RedfileResultManager {
             return (solo == null) ? results.stream().filter(RedfileResult::isActive) : Stream.of(solo);
         }
 
-        public List<RedfileResult> results() {
-            return results;
-        }
-
-        public Set<Long> selected() {
-            return selected;
-        }
     }
 
     public static final class RedfileResult {
@@ -547,10 +538,6 @@ public class RedfileResultManager {
     }
 
     public record ResultTile(BlockPos pos, TaggedStats.Display stats, RedfileResult master) {
-//        public ConfidenceInterval getInterval() {
-//            return MoreMath.clampZero(meanAndVar.middleInterval(RubixMod.CONFIG.redfileOptions.alpha()));
-//        }
-
         public boolean isEmpty() {
             return stats.isEmpty();
         }
