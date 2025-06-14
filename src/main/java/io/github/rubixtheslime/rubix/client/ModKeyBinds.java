@@ -62,7 +62,6 @@ public class ModKeyBinds {
         }
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            assert client.player != null;
             for (var data : debugIndexes) {
                 int i = data.index;
                 while (data.keyBinding.wasPressed()){
@@ -77,7 +76,7 @@ public class ModKeyBinds {
                         RDebug.setB(i, !RDebug.getB(i));
                         message = Text.translatable("text.rubix.debug.toggle", data.index, RDebug.getB(i));
                     }
-                    if (message != null) {
+                    if (message != null && client.player != null) {
                         client.player.sendMessage(message, true);
                     }
                 }

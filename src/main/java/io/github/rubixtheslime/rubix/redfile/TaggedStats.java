@@ -70,18 +70,26 @@ public class TaggedStats {
 
     public Display getDisplay(Set<RedfileTag> tags) {
         MoreMath.MeanVarAcc acc = new MoreMath.MeanVarAcc();
+        MoreMath.MeanVarAcc missingAcc = new MoreMath.MeanVarAcc();
         if (tags == null) {
             data.values().forEach(acc::add);
         } else {
-            tags.stream().map(data::get).forEach(acc::add);
+            for (var entry : data.entrySet()) {
+                if (tags.contains(entry.getKey())) {
+                    acc.add(entry.getValue());
+                } else {
+                    missingAcc.add(entry.getValue());
+                }
+            }
         }
         MeanAndVar mvSum = acc.finish();
+        MeanAndVar mvMissing = missingAcc.finish();
         Map<RedfileTag, MeanAndVar> finalData = new Reference2ObjectArrayMap<>(data.size());
         data.entrySet().stream()
             .filter(entry -> tags == null || tags.contains(entry.getKey()))
             .sorted(Comparator.comparing(entry -> -entry.getValue().mean()))
             .forEach(entry -> finalData.put(entry.getKey(), entry.getValue()));
-        return new Display(mvSum, finalData, this);
+        return new Display(mvSum, finalData, mvMissing, this);
     }
 
     public MeanAndVar get(RedfileTag tag) {
@@ -105,7 +113,7 @@ public class TaggedStats {
         other.data.keySet().forEach(key -> data.computeIfAbsent(key, tag -> new MeanAndVar()));
     }
 
-    public record Display(MeanAndVar sum, Map<RedfileTag, MeanAndVar> data, TaggedStats stats) {
+    public record Display(MeanAndVar sum, Map<RedfileTag, MeanAndVar> data, MeanAndVar missing, TaggedStats stats) {
         public boolean shouldBreakDown() {
             return data().size() != 1 || !data().containsKey(RedfileTags.UNTAGGED);
         }

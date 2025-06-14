@@ -79,6 +79,8 @@ public class RedfileHud {
                 renderEntries.addLast(new RedfileRenderEntry(color, name, mv, confidence, false, true));
             }
         }
+        var missingStats = stats.missing();
+        if (missingStats != null && !missingStats.isEmpty()) renderEntries.addLast(new RedfileRenderEntry(Color.white, Text.translatable("rubix.hud.redfile.missing"), missingStats, confidence, false, false));
 
         var pieChartEntries = renderEntries.stream()
             .filter(RedfileRenderEntry::includeInPieChart)

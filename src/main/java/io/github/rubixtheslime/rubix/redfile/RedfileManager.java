@@ -117,7 +117,7 @@ public class RedfileManager {
 
     public static RedfileTranslationPacket getTranslationPacket() {
         if (translationPacket == null) {
-            translationPacket = new RedfileTranslationPacket(ModRegistries.REDFILE_TAG.stream().map(RedfileTag::toString).toList());
+            translationPacket = new RedfileTranslationPacket(ModRegistries.REDFILE_TAG.stream().map(tag -> tag.id().toString()).toList());
         }
         return translationPacket;
     }

@@ -153,6 +153,7 @@
 
   "rubix.hud.redfile.sum": "Sum",
   "rubix.hud.redfile.block": "Block",
+  "rubix.hud.redfile.missing": "Hidden",
   "rubix.hud.redfile.with_tag": "%s: %s",
   "rubix.redfile.middle": "%s - %s",
   "rubix.redfile.above": "> %1$s",
