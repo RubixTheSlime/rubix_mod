@@ -1,7 +1,6 @@
 package io.github.rubixtheslime.rubix.redfile;
 
 public class RedfileTrackers {
-    public static final RedfileTracker.Simple BLOCK_EVENT = RedfileTracker.Simple.of(RedfileTags.BLOCK_EVENT);
     public static final RedfileTracker.Simple BLOCK_STEP = RedfileTracker.Simple.of(RedfileTags.BLOCK_STEP);
     public static final RedfileTracker.Simple NEIGHBOR_UPDATE = RedfileTracker.Simple.of(RedfileTags.NEIGHBOR_UPDATE);
     public static final RedfileTracker.Simple RANDOM_TICK = RedfileTracker.Simple.of(RedfileTags.RANDOM_TICK);

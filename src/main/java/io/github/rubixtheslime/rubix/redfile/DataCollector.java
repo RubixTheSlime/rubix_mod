@@ -82,7 +82,7 @@ public abstract class DataCollector {
                 value.finishCollecting(trialCount);
                 data.put(entry.getKey(), value.pack());
             }
-            RubixMod.RUBIX_MOD_CHANNEL.serverHandle(source.getPlayer()).send(new RedfileResultPacket(data, splitTags, world.getRegistryKey().getValue()));
+            RubixMod.RUBIX_MOD_CHANNEL.serverHandle(source.getPlayer()).send(new RedfileResultPacket(data, (int) trialCount, splitTags, world.getRegistryKey().getValue()));
             return true;
         }
 

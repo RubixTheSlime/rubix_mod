@@ -1,6 +1,8 @@
 package io.github.rubixtheslime.rubix;
 
 import io.github.rubixtheslime.rubix.redfile.client.ColorMapMode;
+import io.github.rubixtheslime.rubix.redfile.UncertaintyType;
+import io.github.rubixtheslime.rubix.render.ColorMode;
 import io.wispforest.owo.config.annotation.*;
 
 @Modmenu(modId = "rubix")
@@ -26,8 +28,8 @@ public class RubixConfigModel {
         @SectionHeader("danger_zone")
         @RestartRequired
         public boolean enableGayGrassVideo = false;
-        @RestartRequired
-        public boolean enableTransWorld = false;
+//        @RestartRequired
+//        public boolean enableTransWorld = false;
 
     }
 
@@ -37,9 +39,12 @@ public class RubixConfigModel {
         @RangeConstraint(min = 0, max = 1)
         public float xray = 0.3f;
         public boolean xrayEnabled = true;
-        @RangeConstraint(min = 0, max = .3)
-        public float alpha = 0.05f;
+        @RangeConstraint(min = 0, max = 100)
+        public float confidence = 95f;
         public boolean displayConfidenceHud = false;
+        @Hook public ColorMode pieColorMode = ColorMode.RED_GREEN_BLUE;
+        @Hook public boolean pieUncertainty = true;
+        @Hook public UncertaintyType uncertaintyMode = UncertaintyType.ERROR;
         @Hook public String selectionColor = "808080";
 
         @Hook public ColorMapMode colorMapMode = ColorMapMode.RGB_GRADIENT;

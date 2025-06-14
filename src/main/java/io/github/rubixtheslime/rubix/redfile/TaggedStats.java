@@ -1,6 +1,7 @@
 package io.github.rubixtheslime.rubix.redfile;
 
 import io.github.rubixtheslime.rubix.ModRegistries;
+import io.github.rubixtheslime.rubix.util.MeanAndVar;
 import io.github.rubixtheslime.rubix.util.MoreMath;
 import io.github.rubixtheslime.rubix.util.Util;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
@@ -11,9 +12,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TaggedStats {
-    private final Map<RedfileTag, MoreMath.MeanAndVar> data;
+    private final Map<RedfileTag, MeanAndVar> data;
 
-    private TaggedStats(Map<RedfileTag, MoreMath.MeanAndVar> data) {
+    private TaggedStats(Map<RedfileTag, MeanAndVar> data) {
         this.data = data;
     }
 
@@ -21,7 +22,7 @@ public class TaggedStats {
         return new TaggedStats(sync ? new ConcurrentHashMap<>() : new Reference2ObjectOpenHashMap<>());
     }
 
-    public static TaggedStats of(Map<RedfileTag, MoreMath.MeanAndVar> data) {
+    public static TaggedStats of(Map<RedfileTag, MeanAndVar> data) {
         return new TaggedStats(data);
     }
 
@@ -32,7 +33,7 @@ public class TaggedStats {
             var tag = ModRegistries.REDFILE_TAG.get(data[ptr]);
             res.data.merge(
                 tag == null ? RedfileTags.UNFAMILIAR : tag,
-                MoreMath.MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32),
+                MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32),
                 (a, b) -> {
                     var res1 = a.copy();
                     res1.add(b);
@@ -49,7 +50,7 @@ public class TaggedStats {
         for (int ptr = 0; ptr < data.length; ptr += 3) {
             res.data.put(
                 ModRegistries.REDFILE_TAG.get(data[ptr]),
-                MoreMath.MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32)
+                MeanAndVar.unpack(data[ptr + 1] | ((long) data[ptr + 2]) << 32)
             );
         }
         return res;
@@ -75,8 +76,8 @@ public class TaggedStats {
         } else {
             tags.stream().map(data::get).forEach(acc::add);
         }
-        MoreMath.MeanAndVar mvSum = acc.finish();
-        Map<RedfileTag, MoreMath.MeanAndVar> finalData = new Reference2ObjectArrayMap<>(data.size());
+        MeanAndVar mvSum = acc.finish();
+        Map<RedfileTag, MeanAndVar> finalData = new Reference2ObjectArrayMap<>(data.size());
         data.entrySet().stream()
             .filter(entry -> tags == null || tags.contains(entry.getKey()))
             .sorted(Comparator.comparing(entry -> -entry.getValue().mean()))
@@ -84,12 +85,12 @@ public class TaggedStats {
         return new Display(mvSum, finalData, this);
     }
 
-    public MoreMath.MeanAndVar get(RedfileTag tag) {
-        return data.getOrDefault(tag, new MoreMath.MeanAndVar());
+    public MeanAndVar get(RedfileTag tag) {
+        return data.getOrDefault(tag, new MeanAndVar());
     }
 
     public void finishCollecting(long count) {
-        Util.removeIfValue(data, MoreMath.MeanAndVar::isEmpty);
+        Util.removeIfValue(data, MeanAndVar::isEmpty);
         data.forEach((k, v) -> v.finishPredictive(count));
     }
 
@@ -97,7 +98,15 @@ public class TaggedStats {
         return data.isEmpty();
     }
 
-    public record Display(MoreMath.MeanAndVar sum, Map<RedfileTag, MoreMath.MeanAndVar> data, TaggedStats stats) {
+    public void multiplyVariance(int amount) {
+        data.forEach((k, mv) -> mv.multiplyVariance(amount));
+    }
+
+    public void addEmpties(TaggedStats other) {
+        other.data.keySet().forEach(key -> data.computeIfAbsent(key, tag -> new MeanAndVar()));
+    }
+
+    public record Display(MeanAndVar sum, Map<RedfileTag, MeanAndVar> data, TaggedStats stats) {
         public boolean isOnlyUntagged() {
             return data().size() == 1 && data().containsKey(RedfileTags.UNTAGGED);
         }
@@ -157,7 +166,7 @@ public class TaggedStats {
                 var value = entry.getValue();
                 entry.setValue(0L);
                 double x = (double) value * sampleWeight;
-                stats.data.computeIfAbsent(entry.getKey(), a -> new MoreMath.MeanAndVar())
+                stats.data.computeIfAbsent(entry.getKey(), a -> new MeanAndVar())
                     .update(x, trialCount);
             }
         }
@@ -173,7 +182,7 @@ public class TaggedStats {
 
         @Override
         public void commit(TaggedStats stats, double sampleWeight, long trialCount) {
-            stats.data.computeIfAbsent(RedfileTags.UNTAGGED, a -> new MoreMath.MeanAndVar())
+            stats.data.computeIfAbsent(RedfileTags.UNTAGGED, a -> new MeanAndVar())
                 .update(count * sampleWeight, trialCount);
             count = 0;
         }

@@ -72,15 +72,15 @@ public class RedfileCommand {
         PartSupply<RedfileEndCondition.Builder> trialEndConditionFunction;
 
         PartSupply<RedfileSummarizer> summarizerFunction;
-        PartSupply<Double> alphaFunction;
+        PartSupply<Double> confidenceFunction;
         PartSupply<Boolean> splitTagsFunction;
 
         private RedfileSummarizer getSummarizer(CommandContext<ServerCommandSource> context) {
             return summarizerFunction.get(this, context);
         }
 
-        private double getAlpha(CommandContext<ServerCommandSource> context) {
-            return alphaFunction.get(this, context);
+        private double getConfidence(CommandContext<ServerCommandSource> context) {
+            return confidenceFunction.get(this, context);
         }
 
         private boolean getSplit(CommandContext<ServerCommandSource> context) {
@@ -92,8 +92,8 @@ public class RedfileCommand {
             collectorFunction = (s, context) -> DataCollector.summary(s.getSummarizer(context), s.getSplit(context));
             runEndConditionFunction = (s, context) -> RedfileEndCondition.trialCountCondition(30);
             trialEndConditionFunction = (s, context) -> RedfileEndCondition.tickCondition(100);
-            summarizerFunction = (s, context) -> RedfileSummarizer.average(s.getAlpha(context));
-            alphaFunction = (s, context) -> 0.05;
+            summarizerFunction = (s, context) -> RedfileSummarizer.average(s.getConfidence(context));
+            confidenceFunction = (s, context) -> 95d;
             splitTagsFunction = (s, context) -> false;
         }
 
@@ -103,7 +103,7 @@ public class RedfileCommand {
             runEndConditionFunction = suppliers.runEndConditionFunction;
             trialEndConditionFunction = suppliers.trialEndConditionFunction;
             summarizerFunction = suppliers.summarizerFunction;
-            alphaFunction = suppliers.alphaFunction;
+            confidenceFunction = suppliers.confidenceFunction;
             splitTagsFunction = suppliers.splitTagsFunction;
         }
 
@@ -133,7 +133,7 @@ public class RedfileCommand {
         }
 
         Suppliers withAlpha(PartSupply<Double> f) {
-            return applied(s -> s.alphaFunction = f);
+            return applied(s -> s.confidenceFunction = f);
         }
 
         Suppliers withSplitTags(PartSupply<Boolean> f) {
@@ -168,7 +168,7 @@ public class RedfileCommand {
                     )
                     .then(argument("cmp_mode", ModEnumType.CompareModeArgument.compareMode())
                         .then(withSummarizer((s, context) ->
-                                RedfileSummarizer.compare(ModEnumType.CompareModeArgument.getMode(context, "cmp_mode"), StringArgumentType.getString(context, "cmp_name"), s.getAlpha(context))
+                                RedfileSummarizer.compare(ModEnumType.CompareModeArgument.getMode(context, "cmp_mode"), StringArgumentType.getString(context, "cmp_name"), s.getConfidence(context))
                             ).addSplitTags(argument("cmp_name", StringArgumentType.word()))
                         )
                     )
@@ -183,23 +183,23 @@ public class RedfileCommand {
                 );
         }
 
-        private static final String[] ALPHA_SUGGESTIONS = {"0.05", "0.3", "0.01", "0.001"};
+        private static final String[] ALPHA_SUGGESTIONS = {"95", "99", "99.9"};
 
         private ArgumentBuilder<ServerCommandSource, ?> addSplitTags(ArgumentBuilder<ServerCommandSource, ?> builder) {
             return builder
                 .executes(execute())
                 .then(withSplitTags((s, context) -> BoolArgumentType.getBool(context, "split_tags"))
-                    .addAlpha(argument("split_tags", BoolArgumentType.bool()))
+                    .addConfidence(argument("split_tags", BoolArgumentType.bool()))
                 );
         }
 
-        private ArgumentBuilder<ServerCommandSource, ?> addAlpha(ArgumentBuilder<ServerCommandSource, ?> builder) {
+        private ArgumentBuilder<ServerCommandSource, ?> addConfidence(ArgumentBuilder<ServerCommandSource, ?> builder) {
             return builder
                 .executes(execute())
                 .then(addRunEndCondition(literal("-")))
                 .then(withAlpha((s, context) ->
-                    (double) FloatArgumentType.getFloat(context, "alpha")
-                ).addRunEndCondition(argument("alpha", FloatArgumentType.floatArg())
+                    (double) FloatArgumentType.getFloat(context, "confidence")
+                ).addRunEndCondition(argument("confidence", FloatArgumentType.floatArg())
                     .suggests((source, builder1) -> CommandSource.suggestMatching(ALPHA_SUGGESTIONS, builder1))
                 ));
         }

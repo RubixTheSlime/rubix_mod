@@ -41,7 +41,7 @@ public class ModRenderLayer {
         786432,
         false,
         true,
-        ModRenderPipeline.PIE_CHART_QUADS,
+        ModRenderPipeline.PIE_CHART_TRIS,
         RenderLayer.MultiPhaseParameters.builder().texture(new RenderPhase.Texture(UncertainPieChart.QUARTER_CIRCLE, TriState.DEFAULT, false)).build(false)
     );
 

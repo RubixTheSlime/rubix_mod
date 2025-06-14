@@ -27,13 +27,13 @@ public class ModRenderPipeline {
             .build()
     );
 
-    public static final RenderPipeline PIE_CHART_QUADS = RenderPipelines.register(
+    public static final RenderPipeline PIE_CHART_TRIS = RenderPipelines.register(
         RenderPipeline.builder(RenderPipelines.POSITION_TEX_COLOR_SNIPPET)
-            .withLocation(Identifier.of(RubixMod.MOD_ID, "pipeline/pie_chart_quads"))
+            .withLocation(Identifier.of(RubixMod.MOD_ID, "pipeline/pie_chart_tris"))
             .withCull(false)
             .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
             .withDepthWrite(false)
-            .withVertexFormat(VertexFormats.POSITION_TEXTURE_COLOR, VertexFormat.DrawMode.QUADS)
+            .withVertexFormat(VertexFormats.POSITION_TEXTURE_COLOR, VertexFormat.DrawMode.TRIANGLES)
             .build()
     );
 

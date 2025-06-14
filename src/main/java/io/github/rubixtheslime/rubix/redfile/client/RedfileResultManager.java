@@ -10,8 +10,9 @@ import io.github.rubixtheslime.rubix.network.RedfileTranslationPacket;
 import io.github.rubixtheslime.rubix.redfile.RedfileTag;
 import io.github.rubixtheslime.rubix.redfile.RedfileTags;
 import io.github.rubixtheslime.rubix.redfile.TaggedStats;
+import io.github.rubixtheslime.rubix.redfile.UncertaintyType;
 import io.github.rubixtheslime.rubix.render.ModRenderLayer;
-import io.github.rubixtheslime.rubix.util.MoreMath;
+import io.github.rubixtheslime.rubix.util.MeanAndVar;
 import io.github.rubixtheslime.rubix.util.SetOperation;
 import io.github.rubixtheslime.rubix.util.Util;
 import it.unimi.dsi.fastutil.longs.*;
@@ -55,24 +56,24 @@ public class RedfileResultManager {
     public void addDebug(BlockPos pos, int width, World world) {
         Map<Long, int[]> map = new Long2ObjectOpenHashMap<>(width * 12);
         for (int i = 0; i < 12 * width; i++) {
-            var mv = new MoreMath.MeanAndVar(Math.pow(10, ((double) i / width) - 9), 0);
+            var mv = new MeanAndVar(Math.pow(10, ((double) i / width) - 9), 0);
             int[] entry = TaggedStats.of(Map.of(RedfileTags.UNTAGGED, mv)).pack();
             int dcol = i % (width * 2);
             long longBlockPos = BlockPos.asLong(pos.getX() + Math.min(dcol, width * 2  - 1 - dcol), pos.getY(), pos.getZ() + (i / width));
             map.put(longBlockPos, entry);
         }
-        addResultDirect(new RedfileResultPacket(map, false, world.getRegistryKey().getValue()));
+        addResultDirect(new RedfileResultPacket(map, 1, false, world.getRegistryKey().getValue()));
     }
 
     public boolean addEmpty(World world) {
-        addResultDirect(new RedfileResultPacket(Collections.emptyMap(), false, world.getRegistryKey().getValue()));
+        addResultDirect(new RedfileResultPacket(Collections.emptyMap(), 1, false, world.getRegistryKey().getValue()));
         return true;
     }
 
     public void addResult(RedfileResultPacket result) {
         var data = new Long2ObjectOpenHashMap<>(result.data());
         data.replaceAll((posLong, packed) -> TaggedStats.unpack(packed, false, translation).pack());
-        addResultDirect(new RedfileResultPacket(data, result.splitTags(), result.worldIdentifier()));
+        addResultDirect(new RedfileResultPacket(data, result.trialCount(), result.splitTags(), result.worldIdentifier()));
     }
 
     public void addResultDirect(RedfileResultPacket result) {
@@ -80,7 +81,7 @@ public class RedfileResultManager {
         var entry = results.computeIfAbsent(result.worldIdentifier().toString(), x ->
             new WorldEntry(new ArrayList<>(), new LongOpenHashSet())
         );
-        entry.results.addLast(new RedfileResult(result.data(), this));
+        entry.results.addLast(new RedfileResult(result.data(), result.trialCount(), this));
         tileRenderTrie = null;
     }
 
@@ -456,6 +457,10 @@ public class RedfileResultManager {
         }
     }
 
+    public void invalidateSum() {
+        sumOfSelected = null;
+    }
+
     private static final class WorldEntry {
         private final List<RedfileResult> results;
         private final Set<Long> selected;
@@ -505,16 +510,19 @@ public class RedfileResultManager {
 
     public static final class RedfileResult {
         private final Map<Long, int[]> data;
+        private final int trialCount;
         private final RedfileResultManager manager;
         private boolean active = true;
 
-        private RedfileResult(Map<Long, int[]> data, RedfileResultManager manager) {
+        private RedfileResult(Map<Long, int[]> data, int trialCount, RedfileResultManager manager) {
             this.data = data;
+            this.trialCount = trialCount;
             this.manager = manager;
         }
 
         public ResultTile get(long blockPosLong) {
             var statsEntry = TaggedStats.unpack(data.get(blockPosLong), false);
+            if (RubixMod.CONFIG.redfileOptions.uncertaintyMode() == UncertaintyType.FLUCTUATION) statsEntry.multiplyVariance(trialCount);
             return new ResultTile(BlockPos.fromLong(blockPosLong), statsEntry.getDisplay(manager.getActiveTags()), this);
         }
 
@@ -551,7 +559,6 @@ public class RedfileResultManager {
             var mv = stats.sum();
             return mv.mean();
         }
-
     }
 
 }

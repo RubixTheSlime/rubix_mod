@@ -33,7 +33,7 @@ public class MoreMath {
 
     public static ConfidenceInterval clampZero(ConfidenceInterval interval) {
         if (interval == null) return null;
-        return new ConfidenceInterval(Math.max(interval.getLowerBound(), 0), interval.getUpperBound(), interval.getConfidenceLevel());
+        return new ConfidenceInterval(Math.max(interval.getLowerBound(), 0), interval.getUpperBound() == 0 ? Double.MIN_NORMAL : interval.getUpperBound(), interval.getConfidenceLevel());
     }
 
     public static ConfidenceInterval normalHighBoundInterval(double mean, double stdDev, double alpha) {
@@ -44,88 +44,21 @@ public class MoreMath {
         return new ConfidenceInterval(lowerBound, upperBound, 1 - alpha);
     }
 
-    public static ConfidenceInterval normalLowBoundInterval(double mean, double stdDev, double alpha) {
-        double z = Erf.erfInv(1 - alpha * 2);
+    public static ConfidenceInterval normalLowBoundInterval(double mean, double stdDev, double confidence) {
+        double z = Erf.erfInv(confidence * 2 - 1);
         double lowerBound = mean - stdDev * z;
         double upperBound = Float.POSITIVE_INFINITY;
         if (lowerBound == upperBound) lowerBound -= Math.ulp(lowerBound);
-        return new ConfidenceInterval(lowerBound, upperBound, 1 - alpha);
+        return new ConfidenceInterval(lowerBound, upperBound, confidence);
     }
 
-    public static ConfidenceInterval normalMiddleInterval(double mean, double stdDev, double alpha) {
-        double z = Erf.erfInv(1 - alpha);
+    public static ConfidenceInterval normalMiddleInterval(double mean, double stdDev, double confidence) {
+        double z = Erf.erfInv(confidence);
         double lowerBound = mean - stdDev * z;
         double upperBound = mean + stdDev * z;
         if (lowerBound == upperBound) upperBound += Math.ulp(upperBound);
         if (lowerBound == upperBound) lowerBound -= Math.ulp(lowerBound);
-        return new ConfidenceInterval(lowerBound, upperBound, 1 - alpha);
-    }
-
-    public static class MeanAndVar {
-        double mean = 0;
-        double variance = 0;
-
-        public MeanAndVar() {
-        }
-
-        public MeanAndVar(double mean, double variance) {
-            this.mean = mean;
-            this.variance = variance;
-        }
-
-        public static MeanAndVar unpack(long packed) {
-            return new MeanAndVar(Float.intBitsToFloat((int) (packed >> 32)), Float.intBitsToFloat((int) packed));
-        }
-
-        public ConfidenceInterval middleInterval(double alpha) {
-            return normalMiddleInterval(mean, stdDev(), alpha);
-        }
-
-        public void add(MeanAndVar other) {
-            mean += other.mean;
-            variance += other.variance;
-        }
-
-        public void sub(MeanAndVar other) {
-            mean -= other.mean;
-            variance += other.variance;
-        }
-
-        /// finalize the results for the case of estimating the mean
-        public void finishPredictive(long n) {
-            variance /= (n - 1) * n;
-        }
-
-        public void update(double x, long n) {
-            double d = x - mean;
-            mean += d / n;
-            double d2 = x - mean;
-            variance += d * d2;
-        }
-
-        public long pack() {
-            return (long) Float.floatToRawIntBits((float) mean) << 32 | Float.floatToRawIntBits((float) variance);
-        }
-
-        public double mean() {
-            return mean;
-        }
-
-        public double variance() {
-            return variance;
-        }
-
-        public double stdDev() {
-            return Math.sqrt(variance);
-        }
-
-        public MeanAndVar copy() {
-            return new MeanAndVar(mean, variance);
-        }
-
-        public boolean isEmpty() {
-            return mean == 0 && variance == 0;
-        }
+        return new ConfidenceInterval(lowerBound, upperBound, confidence);
     }
 
     public static class MeanVarAcc {
