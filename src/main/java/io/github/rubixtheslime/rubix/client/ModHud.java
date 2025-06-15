@@ -22,7 +22,8 @@ public class ModHud {
                 @Override
                 public void render(DrawContext context, RenderTickCounter tickCounter) {
                     var client = MinecraftClient.getInstance();
-                    if (EnabledMods.REDFILE) {
+                    var hudEnabled = !client.options.hudHidden;
+                    if (EnabledMods.REDFILE && hudEnabled) {
                         RedfileHud.renderRedfileHud(context, client, tickCounter);
                     }
                 }

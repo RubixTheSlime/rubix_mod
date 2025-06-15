@@ -19,6 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class RedfileManager {
     private static final ReentrantLock WORLD_LOCK = new ReentrantLock();
+    private static Thread WORLD_LOCKED_THREAD = null;
     private static final Map<RegistryKey<World>, List<RedfileInstance>> INSTANCES = new HashMap<>();
     private static RedfileTranslationPacket translationPacket = null;
     private static @NotNull Object trackedRaw = RedfileTracker.EMPTY;
@@ -81,11 +82,14 @@ public class RedfileManager {
     public static void lockWorld(Object world) {
         if (shouldLockWorlds(world)) {
             WORLD_LOCK.lock();
+            WORLD_LOCKED_THREAD = Thread.currentThread();
         }
     }
 
     public static void unlockWorld(Object world) {
-        if (world != null && WORLD_LOCK.isLocked()) {
+        if (Thread.currentThread() == WORLD_LOCKED_THREAD) {
+            WORLD_LOCKED_THREAD = null;
+
             WORLD_LOCK.unlock();
         }
     }
