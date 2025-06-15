@@ -2,6 +2,8 @@ package io.github.rubixtheslime.rubix.block;
 
 import io.github.rubixtheslime.rubix.EnabledMods;
 import io.github.rubixtheslime.rubix.redfile.RedfileManager;
+import io.github.rubixtheslime.rubix.redfile.RedfileTags;
+import io.github.rubixtheslime.rubix.redfile.RedfileTrackers;
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -47,6 +49,14 @@ public abstract class SuppressionBlock extends Block {
 
         @Override
         public boolean isAround(Supplier<WorldView> worldSupplier, Supplier<BlockPos> posSupplier) {
+            var redfileTracker = RedfileManager.getCurrentRaw();
+            RedfileTrackers.SUPPRESSION_BLOCK.enter(posSupplier);
+            var res = isAroundInner(worldSupplier, posSupplier);
+            RedfileManager.enter(redfileTracker);
+            return res;
+        }
+
+        public boolean isAroundInner(Supplier<WorldView> worldSupplier, Supplier<BlockPos> posSupplier) {
             var pos = posSupplier.get();
             var world = worldSupplier.get();
             if (pos == null || world == null)

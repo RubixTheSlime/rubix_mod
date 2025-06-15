@@ -5,6 +5,7 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public interface RedfileTracker {
     Empty EMPTY = new RedfileTracker.Empty();
@@ -79,6 +80,21 @@ public interface RedfileTracker {
         @Override
         public BlockPos convert(BlockPos pos) {
             return pos.toImmutable();
+        }
+    }
+
+    class BlockSupplier extends Convert<Supplier<BlockPos>> {
+        protected BlockSupplier(RedfileTag tag) {
+            super(tag);
+        }
+
+        public static BlockSupplier of(RedfileTag tag) {
+            return new BlockSupplier(tag);
+        }
+
+        @Override
+        public BlockPos convert(Supplier<BlockPos> supplier) {
+            return supplier.get().toImmutable();
         }
     }
 

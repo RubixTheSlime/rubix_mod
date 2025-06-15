@@ -190,5 +190,8 @@
   "redfile.tag.minecraft.tile_entity_tick": "Tick tile entity",
   "redfile.tag.minecraft.tile_tick_block": "Tile tick (block)",
   "redfile.tag.minecraft.tile_tick_fluid": "Tile tick (fluid)",
-  "redfile.tag.minecraft.torch_burnout": "Torch burnout"
+  "redfile.tag.minecraft.torch_burnout": "Torch burnout",
+
+  "redfile.tag.rubix.suppression_block": "Find suppression blocks"
+
 }

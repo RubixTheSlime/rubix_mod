@@ -25,6 +25,7 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.BufferAllocator;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.command.argument.BlockStateArgument;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
@@ -71,18 +72,24 @@ public class RedfileResultManager {
     }
 
     public void addResult(RedfileResultPacket result) {
-        var data = new Long2ObjectOpenHashMap<>(result.data());
-        data.replaceAll((posLong, packed) -> TaggedStats.unpack(packed, false, translation).pack());
-        addResultDirect(new RedfileResultPacket(data, result.trialCount(), result.splitTags(), result.worldIdentifier()));
+            var data = new Long2ObjectOpenHashMap<>(result.data());
+            data.replaceAll((posLong, packed) -> TaggedStats.unpack(packed, false, translation).pack());
+            addResultDirect(new RedfileResultPacket(data, result.trialCount(), result.splitTags(), result.worldIdentifier()));
     }
 
     public void addResultDirect(RedfileResultPacket result) {
-//        var client = MinecraftClient.getInstance();
-        var entry = results.computeIfAbsent(result.worldIdentifier().toString(), x ->
-            new WorldEntry(new ArrayList<>(), new LongOpenHashSet())
-        );
-        entry.results.addLast(new RedfileResult(result.data(), result.trialCount(), this));
-        tileRenderTrie = null;
+        try {
+            var entry = results.computeIfAbsent(result.worldIdentifier().toString(), x ->
+                new WorldEntry(new ArrayList<>(), new LongOpenHashSet())
+            );
+            entry.results.addLast(new RedfileResult(result.data(), result.trialCount(), this));
+            tileRenderTrie = null;
+        } catch (Throwable throwable) {
+            var player = MinecraftClient.getInstance().player;
+            if (player == null) return;
+            player.sendMessage(Text.literal("an unexpected error occurred"), false);
+            throwable.printStackTrace();
+        }
     }
 
     private WorldEntry get(World world) {

@@ -286,22 +286,28 @@ public class RedfileCommand {
 
         private Command<ServerCommandSource> execute() {
             return context -> {
-                var box = boxFunction.get(this, context);
-                var trialEndCondition = trialEndConditionFunction.get(this, context);
-                if (trialEndCondition == null) return 0;
+                try {
+                    var box = boxFunction.get(this, context);
+                    var trialEndCondition = trialEndConditionFunction.get(this, context);
+                    if (trialEndCondition == null) return 0;
 
-                boolean success = RedfileManager.tryStart(
-                    box,
-                    runEndConditionFunction.get(this, context),
-                    trialEndCondition,
-                    collectorFunction.get(this, context),
-                    ModCommands.tryOr(true, () -> BoolArgumentType.getBool(context, "do_load")) && box != null,
-                    ModCommands.tryOr(true, () -> BoolArgumentType.getBool(context, "do_sprint")),
-                    context.getSource()
-                );
+                    boolean success = RedfileManager.tryStart(
+                        box,
+                        runEndConditionFunction.get(this, context),
+                        trialEndCondition,
+                        collectorFunction.get(this, context),
+                        ModCommands.tryOr(true, () -> BoolArgumentType.getBool(context, "do_load")) && box != null,
+                        ModCommands.tryOr(true, () -> BoolArgumentType.getBool(context, "do_sprint")),
+                        context.getSource()
+                    );
 
-                context.getSource().sendFeedback(() -> Text.translatable(success ? "rubix.command.redfile.started" : "rubix.command.redfile.already_running"), false);
-                return success ? 1 : 0;
+                    context.getSource().sendFeedback(() -> Text.translatable(success ? "rubix.command.redfile.started" : "rubix.command.redfile.already_running"), false);
+                    return success ? 1 : 0;
+                } catch (Throwable throwable) {
+                    context.getSource().sendFeedback(() -> Text.literal("an unexpected error occurred"), false);
+                    throwable.printStackTrace();
+                    return 0;
+                }
             };
         }
 

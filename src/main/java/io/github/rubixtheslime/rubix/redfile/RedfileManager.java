@@ -85,7 +85,7 @@ public class RedfileManager {
     }
 
     public static void unlockWorld(Object world) {
-        if (shouldLockWorlds(world)) {
+        if (world != null && WORLD_LOCK.isLocked()) {
             WORLD_LOCK.unlock();
         }
     }
